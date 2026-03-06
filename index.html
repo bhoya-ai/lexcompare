@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LexCompare — Comparador de Contratos con IA</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b7fff;
+      --accent-light: #7b9aff;
+      --add: #22c55e;
+      --add-bg: rgba(34,197,94,0.12);
+      --del: #ef4444;
+      --del-bg: rgba(239,68,68,0.12);
+      --mod: #f0c040;
+      --text: #e2e8f0;
+      --muted: #8892aa;
+      --gold: #f0c040;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent-light); }
+    .badge {
+      background: rgba(91,127,255,0.15);
+      color: var(--accent-light);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(91,127,255,0.3);
+      letter-spacing: 0.5px;
+    }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .api-label { font-size: 12px; color: var(--muted); }
+    #apiKey {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      width: 260px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #apiKey:focus { border-color: var(--accent); }
+    #apiKey::placeholder { color: var(--muted); }
+
+    /* ── MAIN ── */
+    main { padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; max-width: 1600px; margin: 0 auto; }
+
+    /* ── INPUT GRID ── */
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .contract-box { display: flex; flex-direction: column; gap: 8px; }
+    .contract-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .v-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .v1 .v-badge { background: rgba(239,68,68,0.15); color: #fc8181; border: 1px solid rgba(239,68,68,0.3); }
+    .v2 .v-badge { background: rgba(34,197,94,0.15); color: #68d391; border: 1px solid rgba(34,197,94,0.3); }
+    .file-name { font-size: 11px; color: var(--accent-light); font-weight: 400; letter-spacing: 0; text-transform: none; }
+    .upload-btn {
+      margin-left: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .upload-btn:hover { color: var(--text); border-color: var(--accent); }
+    .upload-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .sample-link { font-size: 11px; color: var(--accent); cursor: pointer; text-decoration: underline; opacity: .8; }
+    .sample-link:hover { opacity: 1; }
+    textarea {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 220px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── MODE TOGGLE ── */
+    .mode-section { display: flex; align-items: center; gap: 14px; }
+    .mode-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+    .mode-toggle {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .mode-btn {
+      padding: 7px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .mode-btn.active { background: var(--accent); color: #fff; }
+    .mode-btn:not(.active):hover { color: var(--text); }
+    .mode-hint { font-size: 11px; color: var(--muted); }
+
+    /* ── ACTIONS ── */
+    .actions { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(91,127,255,0.4); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-secondary { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-secondary:hover { color: var(--text); border-color: var(--accent); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── PROMPT PANEL ── */
+    .prompt-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+    }
+    .prompt-panel.visible { display: block; }
+    .prompt-panel-header {
+      background: var(--surface2);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .prompt-panel-title { font-size: 13px; font-weight: 600; }
+    .prompt-panel-sub { font-size: 11px; color: var(--muted); }
+    .prompt-panel-actions { margin-left: auto; }
+    .btn-tiny {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .btn-tiny:hover { color: var(--text); border-color: var(--accent); }
+    #promptEditor {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 16px 18px;
+      resize: vertical;
+      min-height: 160px;
+      outline: none;
+    }
+    .prompt-note {
+      padding: 10px 18px;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── STATS BAR ── */
+    .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 100px;
+    }
+    .stat-val { font-size: 20px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat.adds .stat-val { color: var(--add); }
+    .stat.dels .stat-val { color: var(--del); }
+    .stat.mods .stat-val { color: var(--gold); }
+    .stat.total .stat-val { color: var(--accent-light); }
+    .stat.equal .stat-val { color: var(--muted); }
+
+    /* ── DIFF SECTION ── */
+    .diff-section { display: none; flex-direction: column; gap: 16px; }
+    .diff-section.visible { display: flex; }
+
+    /* Word diff */
+    .diff-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .diff-add { background: var(--add-bg); color: var(--add); border-radius: 3px; padding: 0 2px; }
+    .diff-del { background: var(--del-bg); color: var(--del); border-radius: 3px; padding: 0 2px; text-decoration: line-through; }
+
+    /* Clause diff */
+    .clause-list { display: flex; flex-direction: column; gap: 8px; }
+    .clause-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-left-color .2s;
+    }
+    .clause-card.equal { opacity: .75; }
+    .clause-card.modified { border-left-color: var(--gold); }
+    .clause-card.added { border-left-color: var(--add); }
+    .clause-card.removed { border-left-color: var(--del); }
+    .clause-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .clause-header:hover { background: rgba(255,255,255,0.02); }
+    .clause-status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .equal .clause-status { background: rgba(136,146,170,0.15); color: var(--muted); }
+    .modified .clause-status { background: rgba(240,192,64,0.15); color: var(--gold); border: 1px solid rgba(240,192,64,0.3); }
+    .added .clause-status { background: var(--add-bg); color: var(--add); border: 1px solid rgba(34,197,94,0.3); }
+    .removed .clause-status { background: var(--del-bg); color: var(--del); border: 1px solid rgba(239,68,68,0.3); }
+    .clause-title-text { font-size: 13px; font-weight: 600; flex: 1; }
+    .clause-chevron { font-size: 11px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+    .clause-card.open .clause-chevron { transform: rotate(180deg); }
+    .clause-body { display: none; padding: 0 16px 16px; }
+    .clause-card.open .clause-body { display: block; }
+    .clause-content-wrap {
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── AI ANALYSIS ── */
+    .analysis-section { display: none; flex-direction: column; gap: 16px; }
+    .analysis-section.visible { display: flex; }
+    .analysis-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .analysis-header {
+      background: var(--surface2);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ai-icon { font-size: 18px; }
+    .analysis-header-text { font-weight: 600; font-size: 14px; }
+    .analysis-header-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .analysis-body { padding: 20px; font-size: 14px; line-height: 1.7; color: var(--text); }
+    .analysis-body h3 { color: var(--accent-light); margin: 18px 0 8px; font-size: 14px; font-weight: 700; }
+    .analysis-body h3:first-child { margin-top: 0; }
+    .analysis-body p { margin-bottom: 10px; }
+    .analysis-body ul { margin: 8px 0 12px 18px; }
+    .analysis-body li { margin-bottom: 5px; }
+    .analysis-body strong { color: #fff; }
+    .risk-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .risk-alto { background: rgba(239,68,68,0.2); color: #fc8181; border: 1px solid rgba(239,68,68,0.4); }
+    .risk-medio { background: rgba(240,192,64,0.15); color: var(--gold); border: 1px solid rgba(240,192,64,0.3); }
+    .risk-bajo { background: rgba(34,197,94,0.15); color: #68d391; border: 1px solid rgba(34,197,94,0.3); }
+
+    /* ── STREAMING CURSOR ── */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── SPINNER ── */
+    .spinner-wrap { display: flex; align-items: center; gap: 12px; padding: 20px; }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── EXPORT ── */
+    .export-section { display: none; justify-content: flex-end; }
+    .export-section.visible { display: flex; }
+
+    /* ── FOOTER ── */
+    footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 20px; }
+
+    /* ── PRINT ── */
+    @media print {
+      header .header-right, .input-grid, .mode-section, .actions,
+      .prompt-panel, .export-section, .sample-link, .upload-btn, footer { display: none !important; }
+      body { background: #fff; color: #000; font-size: 12px; }
+      .logo span { color: #3344aa; }
+      .diff-section, .analysis-section { display: flex !important; }
+      .clause-body { display: block !important; }
+      .clause-card { break-inside: avoid; }
+      .diff-container, .clause-content-wrap { background: #f5f5f5 !important; color: #000 !important; border-color: #ccc !important; }
+      .analysis-card, .clause-card { border-color: #ccc !important; background: #f9f9f9 !important; }
+      .analysis-header { background: #eee !important; }
+      .diff-add { background: #d4edda !important; color: #155724 !important; }
+      .diff-del { background: #f8d7da !important; color: #721c24 !important; }
+      header { border-bottom: 2px solid #ccc; padding: 12px 0; }
+      .section-title::after { background: #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Lex<span>Compare</span></div>
+  <div class="badge">POWERED BY CLAUDE</div>
+  <div class="header-right">
+    <span class="api-label">API Key:</span>
+    <input id="apiKey" type="password" placeholder="sk-ant-api03-…" autocomplete="off" />
+  </div>
+</header>
+
+<main>
+
+  <!-- INPUT -->
+  <div class="input-grid">
+    <div class="contract-box v1">
+      <div class="contract-label">
+        <span class="v-badge">V1</span>
+        Versión Original
+        <span class="file-name" id="fileNameA"></span>
+        <span class="sample-link" onclick="loadSample()">← Ejemplo</span>
+        <button class="upload-btn" onclick="document.getElementById('fileA').click()">📎 Subir archivo</button>
+        <input type="file" id="fileA" accept=".txt,.pdf,.docx" style="display:none" onchange="handleUpload('fileA','contractA','fileNameA')">
+      </div>
+      <textarea id="contractA" placeholder="Pega aquí la versión original o sube un archivo (.txt, .pdf, .docx)…"></textarea>
+    </div>
+    <div class="contract-box v2">
+      <div class="contract-label">
+        <span class="v-badge">V2</span>
+        Versión Modificada
+        <span class="file-name" id="fileNameB"></span>
+        <button class="upload-btn" onclick="document.getElementById('fileB').click()">📎 Subir archivo</button>
+        <input type="file" id="fileB" accept=".txt,.pdf,.docx" style="display:none" onchange="handleUpload('fileB','contractB','fileNameB')">
+      </div>
+      <textarea id="contractB" placeholder="Pega aquí la versión modificada o sube un archivo…"></textarea>
+    </div>
+  </div>
+
+  <!-- MODE TOGGLE -->
+  <div class="mode-section">
+    <span class="mode-label">Modo de comparación:</span>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeWord" onclick="setMode('word')">🔤 Por Palabra</button>
+      <button class="mode-btn" id="modeClause" onclick="setMode('clause')">📄 Por Cláusula</button>
+    </div>
+    <span class="mode-hint" id="modeHint">Resalta cada palabra añadida o eliminada</span>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn btn-secondary" onclick="clearAll()">✕ Limpiar</button>
+    <button class="btn btn-ghost" id="promptToggleBtn" onclick="togglePrompt()">🔍 Ver prompt</button>
+    <button class="btn btn-primary" id="compareBtn" onclick="compare()">⚖️ Comparar y Analizar</button>
+  </div>
+
+  <!-- PROMPT PANEL -->
+  <div class="prompt-panel" id="promptPanel">
+    <div class="prompt-panel-header">
+      <span>🤖</span>
+      <div>
+        <div class="prompt-panel-title">Instrucción enviada a Claude</div>
+        <div class="prompt-panel-sub">Edita el prompt para cambiar el enfoque del análisis</div>
+      </div>
+      <div class="prompt-panel-actions">
+        <button class="btn-tiny" onclick="resetPrompt()">↩ Restaurar</button>
+      </div>
+    </div>
+    <textarea id="promptEditor" spellcheck="false"></textarea>
+    <div class="prompt-note">
+      💡 Los textos completos de V1 y V2 se añaden automáticamente al final. Modifica esta instrucción para explorar cómo cambia el análisis.
+    </div>
+  </div>
+
+  <!-- DIFF RESULTS -->
+  <div class="diff-section" id="diffSection">
+    <div class="section-title">Cambios detectados</div>
+    <div class="stats-bar" id="statsBar"></div>
+    <div id="diffContainer"></div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="export-section" id="exportSection">
+    <button class="btn btn-ghost" onclick="window.print()">🖨️ Exportar / Imprimir</button>
+  </div>
+
+  <!-- AI ANALYSIS -->
+  <div class="analysis-section" id="analysisSection">
+    <div class="section-title">Análisis jurídico con IA</div>
+    <div class="analysis-card">
+      <div class="analysis-header">
+        <span class="ai-icon">🤖</span>
+        <span class="analysis-header-text">Claude — Análisis Legal</span>
+        <span class="analysis-header-sub" id="analysisTime"></span>
+      </div>
+      <div class="analysis-body" id="analysisBody"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>LexCompare · Demo educativa · Potenciado por Claude (Anthropic)</footer>
+
+<script>
+// ── PDF.JS WORKER ─────────────────────────────────────────────────────────────
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── DEFAULT PROMPT ────────────────────────────────────────────────────────────
+const DEFAULT_PROMPT =
+`Eres un abogado experto en contratos mercantiles españoles. Se te presentan dos versiones de un contrato y debes realizar un análisis jurídico de las diferencias.
+
+Proporciona un análisis jurídico estructurado en español con:
+1. **Resumen ejecutivo** (2-3 frases)
+2. **Cambios de alto riesgo** — bullet points con artículo afectado e implicación jurídica. Etiqueta [ALTO]
+3. **Cambios de riesgo medio** — ídem. Etiqueta [MEDIO]
+4. **Cambios de bajo riesgo** — ídem. Etiqueta [BAJO]
+5. **Recomendaciones concretas** para el Cliente (3-5 puntos accionables)
+
+Sé conciso y directo. El análisis debe ser práctico y útil para un profesional legal.
+
+`;
+
+document.getElementById('promptEditor').value = DEFAULT_PROMPT;
+
+function resetPrompt() {
+  document.getElementById('promptEditor').value = DEFAULT_PROMPT;
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────────
+let currentMode = 'word';
+const modeHints = {
+  word: 'Resalta cada palabra añadida o eliminada',
+  clause: 'Compara cláusula por cláusula y muestra cuáles cambiaron'
+};
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeWord').classList.toggle('active', mode === 'word');
+  document.getElementById('modeClause').classList.toggle('active', mode === 'clause');
+  document.getElementById('modeHint').textContent = modeHints[mode];
+}
+
+// ── PROMPT TOGGLE ─────────────────────────────────────────────────────────────
+let promptVisible = false;
+function togglePrompt() {
+  promptVisible = !promptVisible;
+  document.getElementById('promptPanel').classList.toggle('visible', promptVisible);
+  document.getElementById('promptToggleBtn').textContent =
+    promptVisible ? '🔍 Ocultar prompt' : '🔍 Ver prompt';
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────────────────────
+async function handleUpload(inputId, textareaId, fileNameId) {
+  const input = document.getElementById(inputId);
+  const file = input.files[0];
+  if (!file) return;
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const btn = document.querySelector(`button[onclick="document.getElementById('${inputId}').click()"]`);
+  if (btn) { btn.textContent = '⏳ Leyendo…'; btn.disabled = true; }
+
+  try {
+    let text = '';
+    if (ext === 'txt') {
+      text = await readText(file);
+    } else if (ext === 'pdf') {
+      text = await readPdf(file);
+    } else if (ext === 'docx') {
+      text = await readDocx(file);
+    } else {
+      throw new Error('Formato no soportado. Usa .txt, .pdf o .docx');
+    }
+    document.getElementById(textareaId).value = text;
+    document.getElementById(fileNameId).textContent = '📄 ' + file.name;
+  } catch (e) {
+    alert('Error al leer "' + file.name + '": ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '📎 Subir archivo'; btn.disabled = false; }
+    input.value = '';
+  }
+}
+
+function readText(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = () => reject(new Error('Error de lectura'));
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+async function readPdf(file) {
+  if (typeof pdfjsLib === 'undefined')
+    throw new Error('PDF.js no disponible. Comprueba tu conexión.');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    pages.push(content.items.map(s => s.str).join(' '));
+  }
+  const text = pages.join('\n\n').trim();
+  if (!text) throw new Error('El PDF no contiene texto extraíble (puede ser una imagen escaneada).');
+  return text;
+}
+
+async function readDocx(file) {
+  if (typeof mammoth === 'undefined')
+    throw new Error('Mammoth.js no disponible. Comprueba tu conexión.');
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  if (!result.value.trim()) throw new Error('El archivo .docx parece estar vacío.');
+  return result.value;
+}
+
+// ── SAMPLE DATA ───────────────────────────────────────────────────────────────
+const sampleA = `CONTRATO DE PRESTACIÓN DE SERVICIOS
+
+Entre EMPRESA S.L. (en adelante, el Prestador) y CLIENTE S.A. (en adelante, el Cliente).
+
+1. OBJETO
+El Prestador se compromete a desarrollar software de gestión documental conforme a las especificaciones acordadas.
+
+2. DURACIÓN
+El contrato tendrá una duración de 12 meses, prorrogable por acuerdo de ambas partes.
+
+3. PRECIO Y FORMA DE PAGO
+El importe total de los servicios asciende a 24.000 € anuales, pagaderos en cuotas mensuales de 2.000 €. Los pagos se realizarán dentro de los primeros 30 días de cada mes.
+
+4. CONFIDENCIALIDAD
+Ambas partes se comprometen a mantener la confidencialidad de la información intercambiada durante la vigencia del contrato y por un período de 2 años tras su finalización.
+
+5. RESPONSABILIDAD
+El Prestador no será responsable de daños indirectos o lucro cesante derivados de fallos en el software.
+
+6. RESOLUCIÓN
+Cualquiera de las partes podrá resolver el contrato con un preaviso de 30 días mediante comunicación escrita.
+
+7. JURISDICCIÓN
+Las partes se someten a la jurisdicción de los tribunales de Madrid para la resolución de cualquier controversia.`;
+
+const sampleB = `CONTRATO DE PRESTACIÓN DE SERVICIOS
+
+Entre EMPRESA S.L. (en adelante, el Prestador) y CLIENTE S.A. (en adelante, el Cliente).
+
+1. OBJETO
+El Prestador se compromete a desarrollar software de gestión documental conforme a las especificaciones acordadas. Cualquier modificación del alcance deberá formalizarse mediante addenda firmada por ambas partes.
+
+2. DURACIÓN
+El contrato tendrá una duración de 24 meses, prorrogable por acuerdo de ambas partes.
+
+3. PRECIO Y FORMA DE PAGO
+El importe total de los servicios asciende a 36.000 € anuales, pagaderos en cuotas mensuales de 3.000 €. Los pagos se realizarán dentro de los primeros 15 días de cada mes. El retraso en el pago devengará un interés del 8% anual.
+
+4. CONFIDENCIALIDAD
+Ambas partes se comprometen a mantener la confidencialidad de la información intercambiada durante la vigencia del contrato y por un período de 5 años tras su finalización.
+
+5. RESPONSABILIDAD
+El Prestador no será responsable de daños indirectos o lucro cesante derivados de fallos en el software. La responsabilidad total del Prestador quedará limitada al importe abonado en los últimos 3 meses.
+
+6. RESOLUCIÓN
+Cualquiera de las partes podrá resolver el contrato con un preaviso de 90 días mediante comunicación escrita. En caso de resolución anticipada por el Cliente, este abonará una penalización equivalente a 3 mensualidades.
+
+7. JURISDICCIÓN
+Las partes se someten a la jurisdicción de los tribunales de Barcelona para la resolución de cualquier controversia.`;
+
+function loadSample() {
+  document.getElementById('contractA').value = sampleA;
+  document.getElementById('contractB').value = sampleB;
+  document.getElementById('fileNameA').textContent = '';
+  document.getElementById('fileNameB').textContent = '';
+}
+
+// ── WORD-LEVEL DIFF (LCS) ─────────────────────────────────────────────────────
+function tokenize(text) {
+  return text.match(/(\S+|\s+)/g) || [];
+}
+
+function computeLCS(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  const result = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i-1] === b[j-1]) { result.unshift([i-1, j-1]); i--; j--; }
+    else if (dp[i-1][j] >= dp[i][j-1]) i--;
+    else j--;
+  }
+  return result;
+}
+
+function buildOps(oldW, newW, lcs) {
+  const ops = [];
+  let oi = 0, ni = 0, li = 0;
+  while (li < lcs.length) {
+    const [oj, nj] = lcs[li];
+    while (oi < oj) ops.push({ type: 'del', val: oldW[oi++] });
+    while (ni < nj) ops.push({ type: 'add', val: newW[ni++] });
+    ops.push({ type: 'eq', val: oldW[oi++] }); ni++;
+    li++;
+  }
+  while (oi < oldW.length) ops.push({ type: 'del', val: oldW[oi++] });
+  while (ni < newW.length) ops.push({ type: 'add', val: newW[ni++] });
+  return ops;
+}
+
+function wordDiff(oldText, newText) {
+  const ow = tokenize(oldText), nw = tokenize(newText);
+  return buildOps(ow, nw, computeLCS(ow, nw));
+}
+
+function renderOps(ops) {
+  let html = '', adds = 0, dels = 0;
+  for (const op of ops) {
+    const v = esc(op.val);
+    if (op.type === 'add') { html += `<span class="diff-add">${v}</span>`; if (op.val.trim()) adds++; }
+    else if (op.type === 'del') { html += `<span class="diff-del">${v}</span>`; if (op.val.trim()) dels++; }
+    else html += v;
+  }
+  return { html, adds, dels };
+}
+
+function esc(t) {
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ── CLAUSE DIFF ENGINE ────────────────────────────────────────────────────────
+function splitClauses(text) {
+  const lines = text.split('\n');
+  const clauses = [];
+  let current = { title: null, lines: [] };
+
+  for (const line of lines) {
+    const t = line.trim();
+    const isNumbered = /^\d+[\.\-]\s+\S/.test(t);
+    const isAllCaps = t.length >= 4
+      && t === t.toUpperCase()
+      && /[A-ZÁÉÍÓÚÜÑ]/.test(t)
+      && !/^\d+$/.test(t);
+
+    if (isNumbered || isAllCaps) {
+      if (current.title !== null || current.lines.some(l => l.trim())) {
+        clauses.push({ title: current.title || 'Preámbulo', content: current.lines.join('\n').trim() });
+      }
+      current = { title: t, lines: [] };
+    } else {
+      if (current.title === null && !t) continue; // skip leading blanks
+      current.lines.push(line);
+    }
+  }
+
+  if (current.title !== null || current.lines.some(l => l.trim())) {
+    clauses.push({ title: current.title || 'Preámbulo', content: current.lines.join('\n').trim() });
+  }
+  return clauses;
+}
+
+function clauseKey(title) {
+  const m = title.match(/^(\d+)/);
+  return m ? m[1] : title.toLowerCase().replace(/\s+/g, '_').slice(0, 30);
+}
+
+function clauseDiff(textA, textB) {
+  const ca = splitClauses(textA);
+  const cb = splitClauses(textB);
+  const mapA = new Map(ca.map(c => [clauseKey(c.title), c]));
+  const mapB = new Map(cb.map(c => [clauseKey(c.title), c]));
+  const allKeys = [...new Set([...mapA.keys(), ...mapB.keys()])];
+
+  const results = [];
+  let added = 0, removed = 0, modified = 0, equal = 0;
+
+  for (const key of allKeys) {
+    const a = mapA.get(key), b = mapB.get(key);
+    if (a && b) {
+      if (a.content.trim() === b.content.trim()) {
+        results.push({ type: 'equal', title: a.title, contentA: a.content, contentB: b.content });
+        equal++;
+      } else {
+        results.push({ type: 'modified', title: a.title, contentA: a.content, contentB: b.content });
+        modified++;
+      }
+    } else if (a) {
+      results.push({ type: 'removed', title: a.title, contentA: a.content });
+      removed++;
+    } else {
+      results.push({ type: 'added', title: b.title, contentB: b.content });
+      added++;
+    }
+  }
+  return { results, stats: { added, removed, modified, equal } };
+}
+
+// ── MAIN COMPARE ──────────────────────────────────────────────────────────────
+async function compare() {
+  const a = document.getElementById('contractA').value.trim();
+  const b = document.getElementById('contractB').value.trim();
+  if (!a || !b) { alert('Por favor, introduce ambas versiones del contrato.'); return; }
+
+  const btn = document.getElementById('compareBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Procesando…';
+
+  currentMode === 'word' ? renderWordMode(a, b) : renderClauseMode(a, b);
+
+  document.getElementById('exportSection').classList.add('visible');
+  document.getElementById('analysisSection').classList.add('visible');
+  document.getElementById('analysisTime').textContent = '';
+  document.getElementById('analysisBody').innerHTML =
+    '<div class="spinner-wrap"><div class="spinner"></div><span style="color:var(--muted)">Conectando con Claude…</span></div>';
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) {
+    document.getElementById('analysisBody').innerHTML = fallbackAnalysis();
+  } else {
+    await streamAnalysis(a, b, apiKey);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '⚖️ Comparar y Analizar';
+  document.getElementById('diffSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── WORD MODE ─────────────────────────────────────────────────────────────────
+function renderWordMode(a, b) {
+  const ops = wordDiff(a, b);
+  const { html, adds, dels } = renderOps(ops);
+  document.getElementById('diffContainer').innerHTML =
+    `<div class="diff-container">${html}</div>`;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat adds"><span class="stat-val">+${adds}</span><span class="stat-lbl">Palabras añadidas</span></div>
+    <div class="stat dels"><span class="stat-val">-${dels}</span><span class="stat-lbl">Palabras eliminadas</span></div>
+    <div class="stat total"><span class="stat-val">${adds + dels}</span><span class="stat-lbl">Cambios totales</span></div>`;
+  document.getElementById('diffSection').classList.add('visible');
+}
+
+// ── CLAUSE MODE ───────────────────────────────────────────────────────────────
+function renderClauseMode(a, b) {
+  const { results, stats } = clauseDiff(a, b);
+
+  let statHtml = '';
+  if (stats.modified) statHtml += `<div class="stat mods"><span class="stat-val">${stats.modified}</span><span class="stat-lbl">Modificadas</span></div>`;
+  if (stats.added)    statHtml += `<div class="stat adds"><span class="stat-val">+${stats.added}</span><span class="stat-lbl">Nuevas</span></div>`;
+  if (stats.removed)  statHtml += `<div class="stat dels"><span class="stat-val">-${stats.removed}</span><span class="stat-lbl">Eliminadas</span></div>`;
+  statHtml += `<div class="stat equal"><span class="stat-val">${stats.equal}</span><span class="stat-lbl">Sin cambios</span></div>`;
+  document.getElementById('statsBar').innerHTML = statHtml;
+
+  const labels = { equal: 'SIN CAMBIOS', modified: 'MODIFICADA', added: 'NUEVA', removed: 'ELIMINADA' };
+  let html = '<div class="clause-list">';
+
+  results.forEach((r, i) => {
+    const id = 'cl-' + i;
+    const open = r.type !== 'equal';
+    let body = '';
+
+    if (r.type === 'equal') {
+      body = `<div class="clause-content-wrap">${esc(r.contentA)}</div>`;
+    } else if (r.type === 'modified') {
+      const { html: diffHtml } = renderOps(wordDiff(r.contentA, r.contentB));
+      body = `<div class="clause-content-wrap">${diffHtml}</div>`;
+    } else if (r.type === 'added') {
+      body = `<div class="clause-content-wrap" style="color:var(--add)">${esc(r.contentB)}</div>`;
+    } else {
+      body = `<div class="clause-content-wrap" style="color:var(--del);text-decoration:line-through">${esc(r.contentA)}</div>`;
+    }
+
+    html += `
+      <div class="clause-card ${r.type}${open ? ' open' : ''}" id="${id}">
+        <div class="clause-header" onclick="toggleClause('${id}')">
+          <span class="clause-status">${labels[r.type]}</span>
+          <span class="clause-title-text">${esc(r.title)}</span>
+          <span class="clause-chevron">▼</span>
+        </div>
+        <div class="clause-body">${body}</div>
+      </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('diffContainer').innerHTML = html;
+  document.getElementById('diffSection').classList.add('visible');
+}
+
+function toggleClause(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── STREAMING AI ANALYSIS ─────────────────────────────────────────────────────
+async function streamAnalysis(contractA, contractB, apiKey) {
+  const instruction = document.getElementById('promptEditor').value.trim();
+  const prompt = `${instruction}VERSIÓN ORIGINAL:\n${contractA}\n\nVERSIÓN MODIFICADA:\n${contractB}`;
+  const body = document.getElementById('analysisBody');
+  body.innerHTML = '<span class="cursor"></span>';
+
+  try {
+    const t0 = Date.now();
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', raw = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const json = line.slice(6).trim();
+        if (!json || json === '[DONE]') continue;
+        try {
+          const ev = JSON.parse(json);
+          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+            raw += ev.delta.text;
+            body.innerHTML = formatAnalysis(raw) + '<span class="cursor"></span>';
+          }
+        } catch (_) {}
+      }
+    }
+
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    document.getElementById('analysisTime').textContent = `${elapsed}s · claude-sonnet-4-6`;
+    body.innerHTML = formatAnalysis(raw);
+
+  } catch (e) {
+    body.innerHTML = `
+      <p style="color:var(--del)">⚠️ Error al conectar con la API: ${esc(e.message)}</p>
+      <p style="color:var(--muted);margin-top:8px">Mostrando análisis de demostración:</p>
+      ${fallbackAnalysis()}`;
+  }
+}
+
+// ── FORMAT MARKDOWN → HTML ────────────────────────────────────────────────────
+function formatAnalysis(text) {
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[ALTO\]/g, '<span class="risk-pill risk-alto">ALTO</span>')
+    .replace(/\[MEDIO\]/g, '<span class="risk-pill risk-medio">MEDIO</span>')
+    .replace(/\[BAJO\]/g, '<span class="risk-pill risk-bajo">BAJO</span>')
+    .replace(/^#{1,3}\s+(.+)$/gm, '<h3>$1</h3>')
+    .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n+/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+  return `<p>${html}</p>`;
+}
+
+// ── FALLBACK ANALYSIS (sin API key) ──────────────────────────────────────────
+function fallbackAnalysis() {
+  return `
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">
+      ⚠️ Sin API key — análisis de demostración. Introduce tu clave Anthropic para análisis real con streaming.
+    </p>
+    <h3>📋 Resumen ejecutivo</h3>
+    <p>Se han detectado <strong>modificaciones sustanciales</strong> que afectan al equilibrio económico y a la distribución de riesgos. Los cambios más críticos afectan al precio, la duración y las cláusulas de resolución.</p>
+
+    <h3>⚠️ Cambios de alto riesgo</h3>
+    <ul>
+      <li><span class="risk-pill risk-alto">ALTO</span> <strong>Art. 2 — Duración:</strong> Extensión de 12 a 24 meses sin cláusula de revisión de precio. Compromiso excesivo en un entorno inflacionario.</li>
+      <li><span class="risk-pill risk-alto">ALTO</span> <strong>Art. 6 — Resolución:</strong> Nueva penalización de 3 mensualidades por rescisión anticipada del Cliente. Cláusula potencialmente abusiva.</li>
+      <li><span class="risk-pill risk-alto">ALTO</span> <strong>Art. 7 — Jurisdicción:</strong> Cambio de Madrid a Barcelona. Incremento significativo de costes procesales para el Cliente.</li>
+    </ul>
+
+    <h3>🔶 Cambios de riesgo medio</h3>
+    <ul>
+      <li><span class="risk-pill risk-medio">MEDIO</span> <strong>Art. 3 — Precio:</strong> Incremento del 50 % (24.000 € → 36.000 €/año). Requiere justificación y análisis de proporcionalidad.</li>
+      <li><span class="risk-pill risk-medio">MEDIO</span> <strong>Art. 3 — Pago:</strong> Plazo reducido de 30 a 15 días con intereses de demora al 8 %. Presión sobre la tesorería del Cliente.</li>
+      <li><span class="risk-pill risk-medio">MEDIO</span> <strong>Art. 4 — Confidencialidad:</strong> Ampliada de 2 a 5 años post-contrato. Puede restringir actividades futuras.</li>
+    </ul>
+
+    <h3>🟢 Cambios de bajo riesgo</h3>
+    <ul>
+      <li><span class="risk-pill risk-bajo">BAJO</span> <strong>Art. 6 — Preaviso:</strong> Ampliado de 30 a 90 días. Protege al Prestador; puede ser razonable según el sector.</li>
+      <li><span class="risk-pill risk-bajo">BAJO</span> <strong>Art. 5 — Responsabilidad:</strong> Cap limitado a 3 mensualidades. Estándar del mercado para servicios tecnológicos.</li>
+    </ul>
+
+    <h3>💡 Recomendaciones</h3>
+    <ul>
+      <li>Negociar la eliminación de la penalización por resolución anticipada (art. 6) o limitarla a 1 mensualidad.</li>
+      <li>Incluir cláusula de revisión de precio anual vinculada al IPC si la duración es de 24 meses (art. 2).</li>
+      <li>Mantener la jurisdicción de Madrid o acordar arbitraje en sede neutral (art. 7).</li>
+      <li>Solicitar justificación documentada del incremento del 50 % en el precio (art. 3).</li>
+      <li>Negociar el plazo de pago a 30 días; si se acepta el de 15, exigir reducción del tipo de interés de demora.</li>
+    </ul>`;
+}
+
+// ── CLEAR ─────────────────────────────────────────────────────────────────────
+function clearAll() {
+  ['contractA', 'contractB'].forEach(id => document.getElementById(id).value = '');
+  ['fileNameA', 'fileNameB'].forEach(id => document.getElementById(id).textContent = '');
+  document.getElementById('diffSection').classList.remove('visible');
+  document.getElementById('analysisSection').classList.remove('visible');
+  document.getElementById('exportSection').classList.remove('visible');
+}
+</script>
+</body>
+</html>
