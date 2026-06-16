@@ -17,6 +17,9 @@ directo de esas plataformas a Gmail llega truncado, con imágenes o sin formato.
    - Abre Gmail con un correo ya dirigido a Cowork y rellenado.
 3. **Modo manual**: si prefieres pegar el texto a mano (p. ej. desde el móvil),
    lo limpia igual y abre el correo.
+4. **Atajo de iOS** (`ios-shortcut/`): para capturar desde **Safari en el móvil**
+   con texto limpio + metadatos (fuente, origen, autor, fecha), no solo el link.
+   Misma lógica de extracción que el bookmarklet. Ver `ios-shortcut/README.md`.
 
 ## Por qué este enfoque
 
