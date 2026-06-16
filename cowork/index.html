@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cowork Capture — LinkedIn &amp; X → Gmail</title>
+  <style>
+    :root{
+      --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3350;
+      --accent:#5b7fff; --accent-light:#7b9aff; --ok:#22c55e; --warn:#f0c040;
+      --text:#e2e8f0; --muted:#8892aa;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;line-height:1.55}
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .logo{font-size:22px;font-weight:700;letter-spacing:-.5px}
+    .logo span{color:var(--accent-light)}
+    .badge{background:rgba(91,127,255,.15);color:var(--accent-light);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(91,127,255,.3);letter-spacing:.5px}
+    main{padding:28px 32px;max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px}
+    h2{font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+    .step-n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700}
+    p{color:var(--text);margin-bottom:10px}
+    p.muted{color:var(--muted);font-size:13px}
+    label{display:block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    input[type=text],input[type=email],textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+    input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+    textarea{min-height:160px;resize:vertical;line-height:1.6}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .row>div{flex:1;min-width:200px}
+    button{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+    button:hover{background:var(--accent-light)}
+    button.ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+    .bm-link{display:inline-block;background:linear-gradient(135deg,#5b7fff,#7b9aff);color:#fff !important;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;font-size:15px;cursor:grab;box-shadow:0 4px 14px rgba(91,127,255,.4)}
+    .bm-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:12px 0}
+    .hint{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--warn);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--muted)}
+    .hint b{color:var(--text)}
+    ol{margin:8px 0 0 20px;color:var(--text)}
+    ol li{margin-bottom:6px}
+    code{background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--accent-light)}
+    .saved{color:var(--ok);font-size:13px;font-weight:600}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    footer{padding:24px 32px;text-align:center;color:var(--muted);font-size:12px}
+    a{color:var(--accent-light)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Cowork <span>Capture</span></div>
+    <div class="badge">LINKEDIN &amp; X → GMAIL</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <p>Captura posts de <b>LinkedIn</b> y <b>X</b> con un clic, los limpia y abre un correo de Gmail listo para que <b>Cowork</b> lo lea. Funciona sobre la página que ya tienes abierta en tu navegador, sin scraping en servidor.</p>
+      <p class="muted">Tu configuración se guarda solo en este navegador (localStorage). No se envía nada a ningún servidor.</p>
+    </div>
+
+    <!-- PASO 1: destino -->
+    <div class="card">
+      <h2><span class="step-n">1</span> Dirección que lee Cowork</h2>
+      <label for="dest">Email de destino</label>
+      <input type="email" id="dest" placeholder="p.ej. tu-direccion-cowork@gmail.com" autocomplete="off"/>
+      <div class="toolbar">
+        <button id="saveDest">Guardar</button>
+        <span id="destStatus" class="saved" style="display:none">✓ Guardado</span>
+      </div>
+      <p class="muted" style="margin-top:10px">Es la cuenta de Gmail desde / hacia la que Cowork lee tus inputs. El bookmarklet abrirá un correo ya dirigido a ella.</p>
+    </div>
+
+    <!-- PASO 2: bookmarklet -->
+    <div class="card">
+      <h2><span class="step-n">2</span> Instala el botón de captura</h2>
+      <p class="muted">Arrastra este botón a tu <b>barra de marcadores</b> (si no la ves: <code>Ctrl/Cmd + Shift + B</code>).</p>
+      <div class="bm-wrap">
+        <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Enviar a Cowork</a>
+        <button class="ghost" id="copyBm">Copiar código</button>
+      </div>
+      <div class="hint">
+        <b>Si no puedes arrastrar:</b> crea un marcador nuevo manualmente, ponle nombre <i>Enviar a Cowork</i> y pega en la URL el código que copies con el botón de arriba.
+      </div>
+    </div>
+
+    <!-- PASO 3: uso -->
+    <div class="card">
+      <h2><span class="step-n">3</span> Cómo capturar</h2>
+      <ol>
+        <li>Abre un post en <b>LinkedIn</b> o <b>X</b> (mejor la página del post individual).</li>
+        <li>Pulsa el botón <b>📋 Enviar a Cowork</b> de tu barra de marcadores.</li>
+        <li>Se abrirá Gmail con el texto ya limpio y dirigido a Cowork. Revisa y envía.</li>
+      </ol>
+      <div class="hint" style="margin-top:14px">
+        <b>Truco:</b> si el post es muy largo o tiene un formato raro, <b>selecciona con el ratón el texto que te interesa</b> antes de pulsar el botón: usará exactamente esa selección. Además, el texto completo siempre queda copiado en el portapapeles por si Gmail recorta algo (pega con <code>Ctrl/Cmd+V</code>).
+      </div>
+    </div>
+
+    <!-- PASO 4: modo manual -->
+    <div class="card">
+      <h2><span class="step-n">★</span> Modo manual (respaldo)</h2>
+      <p class="muted">Si prefieres pegar el texto a mano (por ejemplo desde el móvil), hazlo aquí: lo limpia y abre el correo igual.</p>
+      <div class="row" style="margin:8px 0 12px">
+        <div>
+          <label for="mSource">Fuente</label>
+          <select id="mSource"><option>LinkedIn</option><option>X</option><option>Otro</option></select>
+        </div>
+        <div>
+          <label for="mUrl">URL (opcional)</label>
+          <input type="text" id="mUrl" placeholder="https://..."/>
+        </div>
+      </div>
+      <label for="mText">Texto del post</label>
+      <textarea id="mText" placeholder="Pega aquí el contenido del post…"></textarea>
+      <div class="toolbar">
+        <button id="mSend">Limpiar y abrir Gmail</button>
+        <button class="ghost" id="mCopy">Solo copiar limpio</button>
+        <span id="mStatus" class="saved" style="display:none"></span>
+      </div>
+    </div>
+  </main>
+
+  <footer>Cowork Capture · todo ocurre en tu navegador · respeta los Términos de LinkedIn y X (captura manual de páginas que tú ya estás viendo)</footer>
+
+  <script>
+  /* ---------- almacenamiento del destino ---------- */
+  var destInput = document.getElementById('dest');
+  var DEST_KEY = 'coworkDest';
+  destInput.value = localStorage.getItem(DEST_KEY) || '';
+
+  function currentDest(){ return (localStorage.getItem(DEST_KEY) || '').trim(); }
+
+  document.getElementById('saveDest').addEventListener('click', function(){
+    localStorage.setItem(DEST_KEY, destInput.value.trim());
+    var s = document.getElementById('destStatus');
+    s.style.display = 'inline';
+    buildBookmarklet();
+    setTimeout(function(){ s.style.display='none'; }, 2000);
+  });
+
+  /* ---------- código fuente del bookmarklet ----------
+     Se inyecta el email de destino en __DEST__.
+     Sin comentarios de línea (//) para poder colapsar a una sola línea. */
+  function bookmarkletSource(){
+    return "(function(){"
+    + "var DEST=\"__DEST__\";"
+    + "var host=location.hostname, url=location.href;"
+    + "function clean(t){return (t||'').replace(/\\u00A0/g,' ').replace(/[ \\t]+/g,' ').replace(/\\n{3,}/g,'\\n\\n').trim();}"
+    + "function txt(el){return el?clean(el.innerText||el.textContent||''):'';}"
+    + "var source='Web';"
+    + "if(/(^|\\.)x\\.com$|twitter\\.com$/.test(host)){source='X';}"
+    + "else if(/linkedin\\.com$/.test(host)){source='LinkedIn';}"
+    + "var sel=((window.getSelection&&window.getSelection().toString())||'').trim();"
+    + "var pieces=[];"
+    + "if(sel){pieces.push(sel);}"
+    + "else if(source==='X'){"
+      + "var arts=document.querySelectorAll('article[data-testid=\"tweet\"]');"
+      + "if(!arts.length){arts=document.querySelectorAll('article');}"
+      + "arts.forEach(function(a){"
+        + "var name=txt(a.querySelector('[data-testid=\"User-Name\"]'));"
+        + "var body=txt(a.querySelector('[data-testid=\"tweetText\"]'));"
+        + "var tm=a.querySelector('time');"
+        + "var when=tm?tm.getAttribute('datetime'):'';"
+        + "var link=(tm&&tm.parentElement&&tm.parentElement.href)?tm.parentElement.href:'';"
+        + "var media=a.querySelector('[data-testid=\"tweetPhoto\"], video')?'\\n[contiene imagen/video]':'';"
+        + "var head=(name?name:'')+(when?' ('+when+')':'');"
+        + "var piece=((head?head+'\\n':'')+body+media+(link?'\\n'+link:'')).trim();"
+        + "if(body||name){pieces.push(piece);}"
+      + "});"
+    + "}"
+    + "else if(source==='LinkedIn'){"
+      + "var ups=document.querySelectorAll('.feed-shared-update-v2, .feed-shared-update-v2__content, div[data-urn]');"
+      + "var seen={};"
+      + "ups.forEach(function(u){"
+        + "var actor=txt(u.querySelector('.update-components-actor__title, .update-components-actor__name'));"
+        + "var c=u.querySelector('.update-components-text, .feed-shared-update-v2__description, .update-components-update-v2__commentary');"
+        + "var body=txt(c);"
+        + "if(!body||seen[body]){return;}"
+        + "seen[body]=1;"
+        + "pieces.push(((actor?actor+'\\n':'')+body).trim());"
+      + "});"
+      + "if(!pieces.length){pieces.push(txt(document.querySelector('main')||document.body));}"
+    + "}"
+    + "else{pieces.push(txt(document.querySelector('article')||document.querySelector('main')||document.body));}"
+    + "var content=pieces.join('\\n\\n----------\\n\\n');"
+    + "if(!content){alert('No pude extraer texto. Selecciona el texto del post con el raton y vuelve a pulsar el boton.');return;}"
+    + "var dt=new Date().toISOString().slice(0,16).replace('T',' ');"
+    + "var snippet=clean(content).replace(/\\n/g,' ').slice(0,60);"
+    + "var subject='['+source+'] '+snippet;"
+    + "var header='FUENTE: '+source+'\\nURL: '+url+'\\nCAPTURADO: '+dt+' UTC\\n\\n----------\\n\\n';"
+    + "var full=header+content;"
+    + "try{if(navigator.clipboard){navigator.clipboard.writeText(full);}}catch(e){}"
+    + "var MAX=5000, body=full;"
+    + "if(full.length>MAX){body=full.slice(0,MAX)+'\\n\\n[...TEXTO COMPLETO COPIADO AL PORTAPAPELES. Pega con Ctrl/Cmd+V el resto...]';}"
+    + "if(!DEST){alert('Configura primero el email de destino en Cowork Capture.');}"
+    + "var gmail='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(DEST)+'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);"
+    + "window.open(gmail,'_blank');"
+    + "})();";
+  }
+
+  function buildBookmarklet(){
+    var dest = currentDest();
+    var code = bookmarkletSource().split('__DEST__').join(dest);
+    var href = 'javascript:' + code;
+    var a = document.getElementById('bookmarklet');
+    a.setAttribute('href', href);
+  }
+
+  document.getElementById('copyBm').addEventListener('click', function(){
+    var code = 'javascript:' + bookmarkletSource().split('__DEST__').join(currentDest());
+    navigator.clipboard.writeText(code).then(function(){
+      var b=document.getElementById('copyBm'); var o=b.textContent; b.textContent='✓ Copiado';
+      setTimeout(function(){ b.textContent=o; },1500);
+    });
+  });
+
+  buildBookmarklet();
+
+  /* ---------- modo manual ---------- */
+  var NOISE = [
+    /^\d{1,3}([.,]\d{3})*(\s*(reactions?|reacciones?|comments?|comentarios?|reposts?|shares?|veces compartido|likes?|me gusta|views?|visualizaciones?))?$/i,
+    /^(like|comment|repost|send|share|follow(ing)?|reply|view|more|see translation|show more|promoted|sponsored)$/i,
+    /^(me gusta|comentar|compartir|recomendar|enviar|responder|seguir|siguiendo|ver traducci[oó]n|ver m[aá]s|promocionado|publicidad)$/i,
+    /^(…\s*)?(see|ver) more$/i,
+    /^…?\s*(see more|ver m[aá]s)\s*…?$/i,
+    /^(activate to view larger image|activa para ver la imagen m[aá]s grande)$/i,
+    /^[•·∙]+$/,
+    /^·\s*(1st|2nd|3rd|\d+(st|nd|rd|th))$/i,
+    /^\d+\s*(h|d|w|m|min|s|sem|años?|año)$/i,
+    /^(reactivar|activate now|activar ahora)$/i
+  ];
+  function cleanPasted(t){
+    var lines = (t||'').replace(/ /g,' ').split(/\r?\n/);
+    var out = [];
+    for(var i=0;i<lines.length;i++){
+      var L = lines[i].replace(/[ \t]+/g,' ').trim();
+      if(L==='') { out.push(''); continue; }
+      var noise=false;
+      for(var j=0;j<NOISE.length;j++){ if(NOISE[j].test(L)){ noise=true; break; } }
+      if(!noise) out.push(L);
+    }
+    return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+  function buildManual(){
+    var src = document.getElementById('mSource').value;
+    var url = document.getElementById('mUrl').value.trim();
+    var raw = document.getElementById('mText').value;
+    var content = cleanPasted(raw);
+    if(!content) return null;
+    var dt = new Date().toISOString().slice(0,16).replace('T',' ');
+    var header = 'FUENTE: '+src+'\n'+(url?'URL: '+url+'\n':'')+'CAPTURADO: '+dt+' UTC\n\n----------\n\n';
+    var snippet = content.replace(/\n/g,' ').slice(0,60);
+    return { subject:'['+src+'] '+snippet, full:header+content };
+  }
+  document.getElementById('mSend').addEventListener('click', function(){
+    var r = buildManual();
+    if(!r){ flashManual('Pega algún texto primero.'); return; }
+    var dest = currentDest();
+    if(!dest){ flashManual('Configura el email de destino arriba.'); return; }
+    try{ navigator.clipboard.writeText(r.full); }catch(e){}
+    var body = r.full.length>5000 ? r.full.slice(0,5000)+'\n\n[...TEXTO COMPLETO EN EL PORTAPAPELES...]' : r.full;
+    var gmail='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest)+'&su='+encodeURIComponent(r.subject)+'&body='+encodeURIComponent(body);
+    window.open(gmail,'_blank');
+  });
+  document.getElementById('mCopy').addEventListener('click', function(){
+    var r = buildManual();
+    if(!r){ flashManual('Pega algún texto primero.'); return; }
+    navigator.clipboard.writeText(r.full).then(function(){ flashManual('✓ Texto limpio copiado'); });
+  });
+  function flashManual(msg){
+    var s=document.getElementById('mStatus'); s.textContent=msg; s.style.display='inline';
+    setTimeout(function(){ s.style.display='none'; },2200);
+  }
+  </script>
+</body>
+</html>
