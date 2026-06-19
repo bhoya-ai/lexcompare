@@ -7,22 +7,22 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3350;
-      --accent: #5b7fff;
-      --accent-light: #7b9aff;
-      --good: #22c55e;
-      --good-bg: rgba(34,197,94,0.12);
-      --bad: #ef4444;
-      --bad-bg: rgba(239,68,68,0.12);
-      --warn: #f0c040;
-      --text: #e2e8f0;
-      --muted: #8892aa;
+      --bg: #ffffff;
+      --surface: #f6f6f7;
+      --surface2: #ececee;
+      --border: #dcdce0;
+      --accent: #e2711d;
+      --accent-light: #f59331;
+      --good: #e2711d;
+      --good-bg: rgba(226,113,29,0.12);
+      --bad: #c0392b;
+      --bad-bg: rgba(192,57,43,0.10);
+      --warn: #d99000;
+      --text: #1f2329;
+      --muted: #6b7280;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+    body { background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; min-height: 100vh; }
 
     header {
       background: var(--surface);
@@ -33,9 +33,9 @@
     .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     .logo span { color: var(--accent-light); }
     .badge {
-      background: rgba(91,127,255,0.15); color: var(--accent-light);
+      background: rgba(226,113,29,0.15); color: var(--accent);
       font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
-      border: 1px solid rgba(91,127,255,0.3); letter-spacing: 0.5px;
+      border: 1px solid rgba(226,113,29,0.3); letter-spacing: 0.5px;
     }
     .header-right { margin-left: auto; font-size: 12px; color: var(--muted); }
 
@@ -52,10 +52,10 @@
     .hero-text p { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 620px; }
     .hero-cost {
       text-align: center; padding: 18px 28px; border-radius: 14px;
-      background: var(--bad-bg); border: 1px solid rgba(239,68,68,0.35); min-width: 240px;
+      background: var(--bad-bg); border: 1px solid rgba(192,57,43,0.35); min-width: 240px;
     }
-    .hero-cost .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #fc8181; font-weight: 700; }
-    .hero-cost .val { font-size: 38px; font-weight: 800; color: #fc8181; line-height: 1.1; margin: 6px 0; }
+    .hero-cost .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--bad); font-weight: 700; }
+    .hero-cost .val { font-size: 38px; font-weight: 800; color: var(--bad); line-height: 1.1; margin: 6px 0; }
     .hero-cost .sub { font-size: 12px; color: var(--muted); }
 
     .section-title {
@@ -117,6 +117,8 @@
     .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
     .card .csub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
     .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap.chart-sm { height: 220px; }
+    .dash-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 
     .legend-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
@@ -145,10 +147,10 @@
     .reporte-table thead tr.months th { text-align: center; border-left: 1px solid var(--border); font-size: 12px; color: var(--text); }
     .reporte-table .col-name { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 220px; }
     .reporte-table thead .col-name { z-index: 3; background: var(--surface2); }
-    .reporte-table tr.grp td { font-weight: 700; background: rgba(91,127,255,0.06); }
-    .reporte-table tr.grp .col-name { background: #1f2333; }
-    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: rgba(91,127,255,0.14); border-top: 2px solid var(--accent); }
-    .reporte-table tr.all .col-name { background: #232844; }
+    .reporte-table tr.grp td { font-weight: 700; background: rgba(226,113,29,0.07); }
+    .reporte-table tr.grp .col-name { background: #efe7df; }
+    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: rgba(226,113,29,0.15); border-top: 2px solid var(--accent); }
+    .reporte-table tr.all .col-name { background: #ead9c8; }
     .reporte-table tr.uge .col-name { padding-left: 26px; color: var(--muted); font-weight: 400; }
     .reporte-table td.mstart { border-left: 1px solid var(--border); }
     .pct-good { color: var(--good); font-weight: 700; }
@@ -260,17 +262,23 @@
       <div class="section-title">Tu escenario — estado tras la IA</div>
       <div class="kpi-grid" id="kpiGrid"></div>
 
-      <div class="card">
-        <h3>Margen: comparación de escenarios</h3>
-        <div class="csub">Margen anual tras la IA (M€) — estado Post-IA del modelo</div>
-        <div class="chart-wrap"><canvas id="chartMargin"></canvas></div>
-      </div>
-
-      <div class="card">
-        <h3>¿A dónde va el valor que genera la IA?</h3>
-        <div class="csub">Reparto del valor entre la firma y los clientes (M€) — tu escenario</div>
-        <div class="chart-wrap" style="height:240px"><canvas id="chartValue"></canvas></div>
-        <div class="legend-note" id="valueNote"></div>
+      <div class="dash-charts">
+        <div class="card">
+          <h3>Ingresos</h3>
+          <div class="csub">Ingresos anuales tras la IA (M€)</div>
+          <div class="chart-wrap chart-sm"><canvas id="chartRevenue"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Margen</h3>
+          <div class="csub">Margen anual tras la IA (M€)</div>
+          <div class="chart-wrap chart-sm"><canvas id="chartMargin"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>¿A dónde va el valor que genera la IA?</h3>
+          <div class="csub">Reparto del valor (M€) — tu escenario</div>
+          <div class="chart-wrap chart-sm"><canvas id="chartValue"></canvas></div>
+          <div class="legend-note" id="valueNote"></div>
+        </div>
       </div>
       </div><!-- /pane-dashboard -->
 
@@ -576,6 +584,7 @@ function onInput(fromPreset = false) {
   current.hoy = { ingPost: mine.ingPre };  // pre-IA = ingresos de hoy
 
   renderKPIs(mine);
+  renderRevenueChart(mine.ingPre, nada.ingPost, mine.ingPost);
   renderMarginChart(pre, nada.margPost, mine.margPost);
   renderValueChart(mine);
   renderReporte();
@@ -675,10 +684,10 @@ function renderPyramid(r) {
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      plugins: { legend: { labels: { color: '#1f2329' } } },
       scales: {
-        x: { ticks: { color: '#8892aa' }, grid: { color: 'rgba(46,51,80,0.5)' }, title: { display: true, text: 'FTE', color: '#8892aa' } },
-        y: { ticks: { color: '#e2e8f0', font: { size: 11 } }, grid: { display: false } },
+        x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' }, title: { display: true, text: 'FTE', color: '#6b7280' } },
+        y: { ticks: { color: '#1f2329', font: { size: 11 } }, grid: { display: false } },
       },
     },
   };
@@ -711,32 +720,35 @@ function renderKPIs(r) {
   `;
 }
 
-const COL = { pre: '#8892aa', nada: '#ef4444', mine: '#5b7fff', good: '#22c55e' };
+const COL = { pre: '#9ca3af', nada: '#c0392b', mine: '#e2711d', good: '#2e8b57' };
+Chart.defaults.font.family = 'Arial, Helvetica, sans-serif';
+Chart.defaults.color = '#1f2329';
 function baseOpts(yTitle) {
   return {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: '#e2e8f0', font: { size: 12 } } } },
+    plugins: { legend: { labels: { color: '#1f2329', font: { size: 12 } } } },
     scales: {
-      x: { ticks: { color: '#8892aa' }, grid: { color: 'rgba(46,51,80,0.5)' } },
-      y: { ticks: { color: '#8892aa', callback: v => '€' + v + 'M' }, grid: { color: 'rgba(46,51,80,0.5)' },
-           title: { display: !!yTitle, text: yTitle, color: '#8892aa' } },
+      x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+      y: { ticks: { color: '#6b7280', callback: v => '€' + v + 'M' }, grid: { color: '#e5e7eb' },
+           title: { display: !!yTitle, text: yTitle, color: '#6b7280' } },
     },
   };
 }
 
-function renderMarginChart(pre, nada, mine) {
-  const data = [M(pre), M(nada), M(mine)];
+function compareBar(canvasId, label, pre, nada, mine) {
   const cfg = {
     type: 'bar',
     data: {
       labels: ['Hoy (pre-IA)', 'No hacer nada', 'Tu escenario'],
-      datasets: [{ label: 'Margen (M€)', data,
+      datasets: [{ label, data: [M(pre), M(nada), M(mine)],
         backgroundColor: [COL.pre, COL.nada, COL.mine], borderRadius: 6 }],
     },
     options: { ...baseOpts(), plugins: { legend: { display: false } } },
   };
-  upsert('chartMargin', cfg);
+  upsert(canvasId, cfg);
 }
+function renderRevenueChart(pre, nada, mine) { compareBar('chartRevenue', 'Ingresos (M€)', pre, nada, mine); }
+function renderMarginChart(pre, nada, mine) { compareBar('chartMargin', 'Margen (M€)', pre, nada, mine); }
 
 function renderValueChart(r) {
   const cfg = {
@@ -747,8 +759,8 @@ function renderValueChart(r) {
         backgroundColor: [COL.mine, COL.good, COL.nada], borderRadius: 6 }],
     },
     options: { ...baseOpts(), indexAxis: 'y', plugins: { legend: { display: false } },
-      scales: { x: { ticks: { color: '#8892aa', callback: v => '€' + v + 'M' }, grid: { color: 'rgba(46,51,80,0.5)' } },
-                y: { ticks: { color: '#e2e8f0' }, grid: { display: false } } } },
+      scales: { x: { ticks: { color: '#6b7280', callback: v => '€' + v + 'M' }, grid: { color: '#e5e7eb' } },
+                y: { ticks: { color: '#1f2329' }, grid: { display: false } } } },
   };
   upsert('chartValue', cfg);
   $('valueNote').textContent =
