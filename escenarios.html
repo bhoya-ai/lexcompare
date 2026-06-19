@@ -117,8 +117,6 @@
     .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
     .card .csub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
     .chart-wrap { position: relative; height: 300px; }
-    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
 
     .legend-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
@@ -245,14 +243,6 @@
           <input type="range" id="intern" min="0" max="30" step="1" value="0" oninput="onInput()">
           <div class="field-desc">Demanda que pierdes porque los clientes hacen el trabajo con su propia IA.</div>
         </div>
-        <div class="field">
-          <div class="field-head">
-            <span class="field-label">Horizonte temporal</span>
-            <span class="field-val" id="v_horizon">5 años</span>
-          </div>
-          <input type="range" id="horizon" min="1" max="10" step="1" value="5" oninput="onInput()">
-          <div class="field-desc">Periodo para la curva de adopción y la pérdida acumulada.</div>
-        </div>
       </div>
     </div>
 
@@ -270,17 +260,10 @@
       <div class="section-title">Tu escenario — estado tras la IA</div>
       <div class="kpi-grid" id="kpiGrid"></div>
 
-      <div class="chart-grid">
-        <div class="card">
-          <h3>Margen: comparación de escenarios</h3>
-          <div class="csub">Margen anual en estado estacionario (M€)</div>
-          <div class="chart-wrap"><canvas id="chartMargin"></canvas></div>
-        </div>
-        <div class="card">
-          <h3>Trayectoria de adopción</h3>
-          <div class="csub">Margen anual durante el horizonte (M€)</div>
-          <div class="chart-wrap"><canvas id="chartRamp"></canvas></div>
-        </div>
+      <div class="card">
+        <h3>Margen: comparación de escenarios</h3>
+        <div class="csub">Margen anual tras la IA (M€) — estado Post-IA del modelo</div>
+        <div class="chart-wrap"><canvas id="chartMargin"></canvas></div>
       </div>
 
       <div class="card">
@@ -573,12 +556,10 @@ function onInput(fromPreset = false) {
   $('v_restruct').textContent = $('restruct').value + '%';
   $('v_nuevaDem').textContent = $('nuevaDem').value + '%';
   $('v_intern').textContent = $('intern').value + '%';
-  $('v_horizon').textContent = $('horizon').value + ' años';
 
   if (!fromPreset) document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 
   const inputs = readInputs();
-  const horizon = +$('horizon').value;
 
   const mine = runModel(inputs);
   // "No hacer nada": tú a 0, pero el mercado sigue avanzando (mismo prodC e internalización)
@@ -596,7 +577,6 @@ function onInput(fromPreset = false) {
 
   renderKPIs(mine);
   renderMarginChart(pre, nada.margPost, mine.margPost);
-  renderRampChart(inputs, horizon);
   renderValueChart(mine);
   renderReporte();
   renderPyramid(mine);
@@ -756,39 +736,6 @@ function renderMarginChart(pre, nada, mine) {
     options: { ...baseOpts(), plugins: { legend: { display: false } } },
   };
   upsert('chartMargin', cfg);
-}
-
-function renderRampChart(inputs, horizon) {
-  const years = [], mineSeries = [], nadaSeries = [];
-  let cumGap = 0;
-  for (let t = 0; t <= horizon; t++) {
-    const f = horizon === 0 ? 1 : t / horizon;  // rampa lineal de adopción
-    years.push('Año ' + t);
-    const mine = runModel({
-      prodPwC: inputs.prodPwC * f, prodC: inputs.prodC * f,
-      restruct: inputs.restruct * f, nuevaDem: inputs.nuevaDem * f,
-      internaliz: inputs.internaliz * f,
-    });
-    // No hacer nada: el mercado igualmente avanza con la rampa
-    const nada = runModel({ prodPwC: 0, prodC: inputs.prodC * f, restruct: 0, nuevaDem: 0, internaliz: inputs.internaliz * f });
-    mineSeries.push(M(mine.margPost));
-    nadaSeries.push(M(nada.margPost));
-    if (t > 0) cumGap += (mine.margPost - nada.margPost);
-  }
-  const cfg = {
-    type: 'line',
-    data: {
-      labels: years,
-      datasets: [
-        { label: 'Tu escenario', data: mineSeries, borderColor: COL.mine,
-          backgroundColor: 'rgba(91,127,255,0.12)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'No hacer nada', data: nadaSeries, borderColor: COL.nada,
-          backgroundColor: 'rgba(239,68,68,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderDash: [6, 4] },
-      ],
-    },
-    options: baseOpts(),
-  };
-  upsert('chartRamp', cfg);
 }
 
 function renderValueChart(r) {
