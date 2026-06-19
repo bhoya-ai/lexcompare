@@ -121,6 +121,41 @@
     @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
 
     .legend-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+    .tab-btn {
+      padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+      background: transparent; color: var(--muted); border-bottom: 2px solid transparent; transition: all .15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+    .pane { display: none; flex-direction: column; gap: 24px; }
+    .pane.active { display: flex; }
+
+    /* ── REPORTE TABLE ── */
+    .reporte-toolbar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .scenario-toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+    .sc-btn { padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all .15s; }
+    .sc-btn.active { background: var(--accent); color: #fff; }
+    .sc-btn:not(.active):hover { color: var(--text); }
+    .detail-check { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .reporte-scroll { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+    .reporte-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+    .reporte-table th, .reporte-table td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+    .reporte-table thead th { position: sticky; top: 0; background: var(--surface2); z-index: 2; color: var(--muted); font-weight: 600; }
+    .reporte-table thead tr.months th { text-align: center; border-left: 1px solid var(--border); font-size: 12px; color: var(--text); }
+    .reporte-table .col-name { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 220px; }
+    .reporte-table thead .col-name { z-index: 3; background: var(--surface2); }
+    .reporte-table tr.grp td { font-weight: 700; background: rgba(91,127,255,0.06); }
+    .reporte-table tr.grp .col-name { background: #1f2333; }
+    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: rgba(91,127,255,0.14); border-top: 2px solid var(--accent); }
+    .reporte-table tr.all .col-name { background: #232844; }
+    .reporte-table tr.uge .col-name { padding-left: 26px; color: var(--muted); font-weight: 400; }
+    .reporte-table td.mstart { border-left: 1px solid var(--border); }
+    .pct-good { color: var(--good); font-weight: 700; }
+    .pct-bad { color: var(--bad); font-weight: 700; }
+    .pct-warn { color: var(--warn); font-weight: 700; }
     footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
     footer code { color: var(--accent-light); }
   </style>
@@ -223,6 +258,15 @@
 
     <!-- RESULTADOS -->
     <div class="results">
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard" onclick="setTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" data-tab="reporte" onclick="setTab('reporte')">Reporte mensual</button>
+        <button class="tab-btn" data-tab="piramide" onclick="setTab('piramide')">Pirámide de categorías</button>
+      </div>
+
+      <!-- PANE: DASHBOARD -->
+      <div class="pane active" id="pane-dashboard">
       <div class="section-title">Tu escenario — estado tras la IA</div>
       <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -245,6 +289,40 @@
         <div class="chart-wrap" style="height:240px"><canvas id="chartValue"></canvas></div>
         <div class="legend-note" id="valueNote"></div>
       </div>
+      </div><!-- /pane-dashboard -->
+
+      <!-- PANE: REPORTE MENSUAL -->
+      <div class="pane" id="pane-reporte">
+        <div class="section-title">Seguimiento YTD mensual — formato comité (FY26)</div>
+        <div class="reporte-toolbar">
+          <div class="scenario-toggle">
+            <button class="sc-btn active" data-sc="mine" onclick="setReporteScenario('mine')">Tu escenario</button>
+            <button class="sc-btn" data-sc="nada" onclick="setReporteScenario('nada')">No hacer nada</button>
+            <button class="sc-btn" data-sc="hoy" onclick="setReporteScenario('hoy')">Hoy (pre-IA)</button>
+          </div>
+          <label class="detail-check"><input type="checkbox" id="ugeDetail" onchange="renderReporte()"> Desglosar por UGE</label>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div class="reporte-scroll"><table class="reporte-table" id="reporteTable"></table></div>
+        </div>
+        <div class="legend-note" id="reporteNote"></div>
+      </div>
+
+      <!-- PANE: PIRÁMIDE -->
+      <div class="pane" id="pane-piramide">
+        <div class="section-title">Efecto en la pirámide de categorías profesionales</div>
+        <div class="kpi-grid" id="pyrKpi"></div>
+        <div class="card">
+          <h3>Plantilla por categoría (FTE)</h3>
+          <div class="csub">Comparación antes / después de la IA — tu escenario</div>
+          <div class="chart-wrap" style="height:440px"><canvas id="chartPyramid"></canvas></div>
+        </div>
+        <div class="legend-note">
+          La reestructuración se concentra en las categorías con mayor factor de automatización
+          (base de la pirámide): a mayor factor IA, mayor reducción relativa de FTE.
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -299,6 +377,38 @@ const MODEL_CONFIG = {
     { cat: 'C. Producción',    fte: 138, coste: 5660, factorIA: 1.70 },
     { cat: 'Becarios',         fte: 102, coste: 1040, factorIA: 2.20 },
   ],
+
+  // ── Datos de la hoja «Reporte» (seguimiento YTD mensual del comité) ──
+  reporte: {
+    presupuestoTLS: 186750,                 // [Modelo!C53] Presupuesto Producción FY26
+    // Periodificación mensual [Modelo!C40:C51], año fiscal Jul→Jun. Suma = 1.
+    meses: ['Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+            'Enero','Febrero','Marzo','Abril','Mayo','Junio'],
+    periodificacion: [0.10125, 0.02, 0.10125, 0.10125, 0.10125, 0.05,
+                      0.06, 0.10125, 0.06, 0.10125, 0.10125, 0.10125],
+    ruidoMensual: 0.05,                     // [Reporte] (RAND()-0.5)*0.05 → ±2,5%
+    // Grupos de producción → UGEs con su peso [Modelo!B57:D81]. Pesos suman 1.
+    grupos: [
+      { grupo: 'GEOGRAFÍAS', uges: [
+        { uge: 'ANDALUCIA', peso: 0.022 }, { uge: 'ARAGON Y LA RIOJA', peso: 0.009 },
+        { uge: 'ASTURIAS Y CANTABRIA', peso: 0.010 }, { uge: 'BALEARES', peso: 0.006 },
+        { uge: 'CANARIAS', peso: 0.016 }, { uge: 'GALICIA', peso: 0.014 },
+        { uge: 'LEVANTE', peso: 0.037 }, { uge: 'P. VASCO Y NAVARRA', peso: 0.030 } ] },
+      { grupo: 'TAX ADVICE', uges: [
+        { uge: 'F.C. BARCELONA', peso: 0.034 }, { uge: 'F.C. CIP&RETAIL-PHARMA&TTL', peso: 0.031 },
+        { uge: 'F.C. FINANCIERO & I+D+I', peso: 0.040 }, { uge: 'F.C. TICEM&CONST-SERV', peso: 0.043 },
+        { uge: 'IGS - ITS', peso: 0.027 }, { uge: 'IGS - TP', peso: 0.091 },
+        { uge: 'INDIRECTOS', peso: 0.038 }, { uge: 'PROCEDIMIENTOS TRIBUTARIOS', peso: 0.029 },
+        { uge: 'M&A FISCAL', peso: 0.106 } ] },
+      { grupo: 'P&O', uges: [
+        { uge: 'HRS', peso: 0.080 }, { uge: 'LABORAL', peso: 0.042 } ] },
+      { grupo: 'LEGAL ADVICE', uges: [
+        { uge: 'CORPORATE M&A LEGAL', peso: 0.060 }, { uge: 'LEGAL BARCELONA', peso: 0.023 },
+        { uge: 'LITIGATION', peso: 0.020 }, { uge: 'REGULATORIO', peso: 0.035 } ] },
+      { grupo: 'NEW LAW', uges: [
+        { uge: 'TRS', peso: 0.118 }, { uge: 'LMS', peso: 0.039 } ] },
+    ],
+  },
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -373,7 +483,42 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
     ftePre: L17, ftePost: R35, fteDif: R35 - L17,
     sharePre, sharePost, shareDif: sharePost - sharePre,
     valorIA, valorClientes, valorFirma,
+    // Efecto en la pirámide de categorías profesionales (FTE por categoría)
+    piramide: staff.map((r, i) => ({ cat: r.cat, pre: r.fte, post: Rc[i], dif: Rc[i] - r.fte })),
   };
+}
+
+/* ── Motor del «Reporte» mensual: distribuye el ingreso post-IA del escenario por
+   UGE y mes (YTD), contra el presupuesto FY26 fijo. Réplica de la hoja «Reporte». ── */
+function buildReporte(ingPostTotal, noise, cfg = MODEL_CONFIG) {
+  const R = cfg.reporte, per = R.periodificacion, nM = per.length;
+  const budTotal = R.presupuestoTLS;
+  const cumPer = []; let acc = 0;
+  for (let m = 0; m < nM; m++) { acc += per[m]; cumPer.push(acc); }
+
+  const grupos = R.grupos.map(g => {
+    const uges = g.uges.map(u => {
+      const annualIng = u.peso * ingPostTotal, annualBud = u.peso * budTotal;
+      let ytdI = 0; const ing = [], bud = [], pct = [];
+      for (let m = 0; m < nM; m++) {
+        ytdI += annualIng * per[m] * (1 + noise[u.uge][m]);
+        const ytdB = annualBud * cumPer[m];
+        ing.push(ytdI); bud.push(ytdB); pct.push(ytdI / ytdB);
+      }
+      return { uge: u.uge, ing, bud, pct };
+    });
+    return { grupo: g.grupo, uges, ...aggregate(uges, nM) };
+  });
+  const all = { grupo: 'TLS ALL', ...aggregate(grupos, nM) };
+  return { grupos, all, meses: R.meses };
+}
+function aggregate(rows, nM) {
+  const ing = new Array(nM).fill(0), bud = new Array(nM).fill(0), pct = new Array(nM).fill(0);
+  for (let m = 0; m < nM; m++) {
+    for (const r of rows) { ing[m] += r.ing[m]; bud[m] += r.bud[m]; }
+    pct[m] = ing[m] / bud[m];
+  }
+  return { ing, bud, pct };
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -444,10 +589,120 @@ function onInput(fromPreset = false) {
   const gap = mine.margPost - nada.margPost;
   $('heroCost').textContent = (gap >= 0 ? '+' : '') + fmtM(gap);
 
+  // Guardar resultados para las pestañas Reporte y Pirámide
+  current.mine = mine;
+  current.nada = nada;
+  current.hoy = { ingPost: mine.ingPre };  // pre-IA = ingresos de hoy
+
   renderKPIs(mine);
   renderMarginChart(pre, nada.margPost, mine.margPost);
   renderRampChart(inputs, horizon);
   renderValueChart(mine);
+  renderReporte();
+  renderPyramid(mine);
+}
+
+/* ── Pestañas ── */
+function setTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + name));
+  // Chart.js necesita un resize al mostrarse un contenedor oculto
+  Object.values(charts).forEach(c => c.resize());
+}
+
+/* ── Estado y render del Reporte mensual ── */
+const current = {};
+let reporteScenario = 'mine';
+// Ruido mensual estable por UGE (réplica determinista del RAND del Excel)
+const NOISE = (() => {
+  let s = 20260619;
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  const amp = MODEL_CONFIG.reporte.ruidoMensual, n = {};
+  for (const g of MODEL_CONFIG.reporte.grupos)
+    for (const u of g.uges)
+      n[u.uge] = MODEL_CONFIG.reporte.periodificacion.map(() => (rnd() - 0.5) * amp);
+  return n;
+})();
+
+function setReporteScenario(sc) {
+  reporteScenario = sc;
+  document.querySelectorAll('.sc-btn').forEach(b => b.classList.toggle('active', b.dataset.sc === sc));
+  renderReporte();
+}
+
+function pctCell(p) {
+  const cls = p >= 1 ? 'pct-good' : (p >= 0.95 ? 'pct-warn' : 'pct-bad');
+  return `<td class="${cls}">${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 0 })}%</td>`;
+}
+function numCell(v, cls = '') { return `<td class="${cls}">${M(v).toLocaleString('es-ES', { maximumFractionDigits: 1 })}</td>`; }
+
+function renderReporte() {
+  if (!current.mine) return;
+  const ingPost = (current[reporteScenario] || current.mine).ingPost;
+  const rep = buildReporte(ingPost, NOISE);
+  const detail = $('ugeDetail').checked;
+  const nM = rep.meses.length;
+
+  // Cabeceras
+  let head = '<thead><tr class="months"><th class="col-name"></th>';
+  for (const mes of rep.meses) head += `<th colspan="3">${mes}</th>`;
+  head += '</tr><tr><th class="col-name">UGE / GRUPO DE PRODUCCIÓN</th>';
+  for (let m = 0; m < nM; m++) head += '<th>Ing. YTD</th><th>Ppto.</th><th>% Cumpl.</th>';
+  head += '</tr></thead>';
+
+  const rowHtml = (r, cls) => {
+    let h = `<tr class="${cls}"><td class="col-name">${r.grupo || r.uge}</td>`;
+    for (let m = 0; m < nM; m++) {
+      h += numCell(r.ing[m], 'mstart') + numCell(r.bud[m]) + pctCell(r.pct[m]);
+    }
+    return h + '</tr>';
+  };
+
+  let body = '<tbody>';
+  for (const g of rep.grupos) {
+    body += rowHtml(g, 'grp');
+    if (detail) for (const u of g.uges) body += rowHtml(u, 'uge');
+  }
+  body += rowHtml(rep.all, 'all');
+  body += '</tbody>';
+
+  $('reporteTable').innerHTML = head + body;
+  const fin = rep.all.pct[nM - 1];
+  const lbl = { mine: 'tu escenario', nada: 'no hacer nada', hoy: 'la situación de hoy (pre-IA)' }[reporteScenario];
+  $('reporteNote').innerHTML =
+    `Cifras en M€. Presupuesto FY26 fijo (€${M(MODEL_CONFIG.reporte.presupuestoTLS).toLocaleString('es-ES',{maximumFractionDigits:1})}M). ` +
+    `Con <strong>${lbl}</strong>, el cumplimiento de cierre (Junio) es <strong>${(fin*100).toLocaleString('es-ES',{maximumFractionDigits:0})}%</strong> del presupuesto. ` +
+    `Cambia de escenario arriba para ver el contraste en el mismo formato que recibe el comité.`;
+}
+
+/* ── Render de la pirámide de categorías ── */
+function renderPyramid(r) {
+  const p = r.piramide;
+  const totalDif = p.reduce((s, x) => s + x.dif, 0);
+  $('pyrKpi').innerHTML = `
+    <div class="kpi"><span class="kpi-lbl">FTE hoy</span><span class="kpi-val">${fmtInt(r.ftePre)}</span></div>
+    <div class="kpi"><span class="kpi-lbl">FTE tras IA</span><span class="kpi-val">${fmtInt(r.ftePost)}</span><span class="kpi-delta ${totalDif>=0?'up':'down'}">${totalDif>=0?'▲':'▼'} ${fmtInt(Math.abs(totalDif))} FTE</span></div>
+    <div class="kpi"><span class="kpi-lbl">Variación plantilla</span><span class="kpi-val">${(r.fteDif/r.ftePre*100).toLocaleString('es-ES',{maximumFractionDigits:1})}%</span></div>
+  `;
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels: p.map(x => x.cat),
+      datasets: [
+        { label: 'Hoy', data: p.map(x => x.pre), backgroundColor: COL.pre, borderRadius: 4 },
+        { label: 'Tras IA', data: p.map(x => x.post), backgroundColor: COL.mine, borderRadius: 4 },
+      ],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      scales: {
+        x: { ticks: { color: '#8892aa' }, grid: { color: 'rgba(46,51,80,0.5)' }, title: { display: true, text: 'FTE', color: '#8892aa' } },
+        y: { ticks: { color: '#e2e8f0', font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  };
+  upsert('chartPyramid', cfg);
 }
 
 function renderKPIs(r) {
