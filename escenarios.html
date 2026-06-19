@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escenarios IA — Impacto Económico en Servicios Profesionales</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b7fff;
+      --accent-light: #7b9aff;
+      --good: #22c55e;
+      --good-bg: rgba(34,197,94,0.12);
+      --bad: #ef4444;
+      --bad-bg: rgba(239,68,68,0.12);
+      --warn: #f0c040;
+      --text: #e2e8f0;
+      --muted: #8892aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent-light); }
+    .badge {
+      background: rgba(91,127,255,0.15); color: var(--accent-light);
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+      border: 1px solid rgba(91,127,255,0.3); letter-spacing: 0.5px;
+    }
+    .header-right { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    main { padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1500px; margin: 0 auto; }
+
+    /* ── HERO / URGENCIA ── */
+    .hero {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+      border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px;
+      display: flex; align-items: center; gap: 32px; flex-wrap: wrap;
+    }
+    .hero-text { flex: 1; min-width: 280px; }
+    .hero-text h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .hero-text p { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 620px; }
+    .hero-cost {
+      text-align: center; padding: 18px 28px; border-radius: 14px;
+      background: var(--bad-bg); border: 1px solid rgba(239,68,68,0.35); min-width: 240px;
+    }
+    .hero-cost .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #fc8181; font-weight: 700; }
+    .hero-cost .val { font-size: 38px; font-weight: 800; color: #fc8181; line-height: 1.1; margin: 6px 0; }
+    .hero-cost .sub { font-size: 12px; color: var(--muted); }
+
+    .section-title {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--muted); display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── PANEL CUESTIONARIO ── */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .panel h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .panel .hint { font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+
+    .preset-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .preset-btn {
+      flex: 1; min-width: 70px; padding: 8px 6px; border-radius: 9px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); transition: all .15s;
+    }
+    .preset-btn:hover { color: var(--text); border-color: var(--accent); }
+    .preset-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .field { margin-bottom: 20px; }
+    .field-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .field-label { font-size: 13px; font-weight: 600; }
+    .field-val { font-size: 14px; font-weight: 700; color: var(--accent-light); }
+    .field-desc { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    input[type=range] {
+      width: 100%; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 4px;
+      background: var(--surface2); outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 0 1px var(--border);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; cursor: pointer;
+    }
+    .adv-toggle { font-size: 12px; color: var(--accent); cursor: pointer; user-select: none; margin-bottom: 14px; display: inline-block; }
+    .adv-fields { display: none; }
+    .adv-fields.open { display: block; }
+
+    /* ── RESULTS ── */
+    .results { display: flex; flex-direction: column; gap: 24px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+    .kpi-val { font-size: 24px; font-weight: 700; }
+    .kpi-delta { font-size: 12px; font-weight: 600; }
+    .kpi-delta.up { color: var(--good); }
+    .kpi-delta.down { color: var(--bad); }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .card .csub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
+
+    .legend-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+    footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
+    footer code { color: var(--accent-light); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Escenarios<span>IA</span></div>
+  <div class="badge">SERVICIOS PROFESIONALES</div>
+  <div class="header-right">Modelo de equilibrio de mercado · cifras sintéticas</div>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-text">
+      <h1>Si no haces nada, la IA decide por ti.</h1>
+      <p>La productividad del mercado avanza con o sin tu intervención. Cuando los competidores
+      capturan las eficiencias de la IA y tú no, el valor se traslada a los clientes vía precio y
+      pierdes margen y cuota. Ajusta los supuestos y compara <strong>tu escenario</strong> frente a
+      <strong>no hacer nada</strong>.</p>
+    </div>
+    <div class="hero-cost">
+      <div class="lbl">Coste de no actuar</div>
+      <div class="val" id="heroCost">—</div>
+      <div class="sub">margen anual que dejas de capturar<br>frente a quedarte quieto</div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- CUESTIONARIO -->
+    <div class="panel">
+      <h2>Cuestionario de escenario</h2>
+      <p class="hint">Define los supuestos de adopción de IA. Los resultados se recalculan al instante.</p>
+
+      <div class="preset-row">
+        <button class="preset-btn" data-preset="nada" onclick="applyPreset('nada')">No hacer nada</button>
+        <button class="preset-btn" data-preset="moderado" onclick="applyPreset('moderado')">Moderado</button>
+        <button class="preset-btn active" data-preset="agresivo" onclick="applyPreset('agresivo')">Agresivo</button>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Crecimiento de tu productividad</span>
+          <span class="field-val" id="v_prodPwC">20%</span>
+        </div>
+        <input type="range" id="prodPwC" min="0" max="50" step="1" value="20" oninput="onInput()">
+        <div class="field-desc">Ganancia de eficiencia que capturas internamente gracias a la IA.</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Crecimiento de la productividad del mercado</span>
+          <span class="field-val" id="v_prodC">5%</span>
+        </div>
+        <input type="range" id="prodC" min="0" max="50" step="1" value="5" oninput="onInput()">
+        <div class="field-desc">Lo que mejora la competencia. Avanza aunque tú no hagas nada.</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Personal reestructurado</span>
+          <span class="field-val" id="v_restruct">80%</span>
+        </div>
+        <input type="range" id="restruct" min="0" max="100" step="5" value="80" oninput="onInput()">
+        <div class="field-desc">Qué parte del exceso de plantilla (por la mayor eficiencia) ajustas realmente.</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Crecimiento por nuevos servicios</span>
+          <span class="field-val" id="v_nuevaDem">10%</span>
+        </div>
+        <input type="range" id="nuevaDem" min="0" max="50" step="1" value="10" oninput="onInput()">
+        <div class="field-desc">Demanda adicional que generas con servicios nuevos habilitados por IA.</div>
+      </div>
+
+      <span class="adv-toggle" onclick="toggleAdv()" id="advToggle">▸ Supuestos avanzados</span>
+      <div class="adv-fields" id="advFields">
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">Internalización de clientes</span>
+            <span class="field-val" id="v_intern">0%</span>
+          </div>
+          <input type="range" id="intern" min="0" max="30" step="1" value="0" oninput="onInput()">
+          <div class="field-desc">Demanda que pierdes porque los clientes hacen el trabajo con su propia IA.</div>
+        </div>
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">Horizonte temporal</span>
+            <span class="field-val" id="v_horizon">5 años</span>
+          </div>
+          <input type="range" id="horizon" min="1" max="10" step="1" value="5" oninput="onInput()">
+          <div class="field-desc">Periodo para la curva de adopción y la pérdida acumulada.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div class="results">
+      <div class="section-title">Tu escenario — estado tras la IA</div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="chart-grid">
+        <div class="card">
+          <h3>Margen: comparación de escenarios</h3>
+          <div class="csub">Margen anual en estado estacionario (M€)</div>
+          <div class="chart-wrap"><canvas id="chartMargin"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Trayectoria de adopción</h3>
+          <div class="csub">Margen anual durante el horizonte (M€)</div>
+          <div class="chart-wrap"><canvas id="chartRamp"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>¿A dónde va el valor que genera la IA?</h3>
+        <div class="csub">Reparto del valor entre la firma y los clientes (M€) — tu escenario</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chartValue"></canvas></div>
+        <div class="legend-note" id="valueNote"></div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Escenarios IA · Demo conceptual · Motor económico portado del modelo financiero (hoja «Modelo»).
+  Sustituye los supuestos en el bloque <code>MODEL_CONFIG</code> para conectar tus datos reales.
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   CAPA 1 — CONFIGURACIÓN DEL MODELO  (PUNTO DE "SWAP" CON DATOS REALES)
+   --------------------------------------------------------------------------
+   Todos estos valores provienen de la hoja «Modelo» del Excel. Para conectar
+   los datos reales, basta con reemplazar los números de este bloque; el motor
+   y la interfaz no necesitan cambios.
+   La referencia entre [corchetes] es la celda equivalente en el Excel.
+   ════════════════════════════════════════════════════════════════════════════ */
+const MODEL_CONFIG = {
+  mercado: {
+    tamanoMercado: 4875000,   // [C3]  Tamaño del mercado
+    tamanoPwC:     176400,    // [C4]  Tamaño PwC
+    precio:        9180/1000, // [C6]  Precio
+  },
+  elasticidades: {
+    Eo:   0.3,   // [C10] Elasticidad oferta
+    EPwC: 0.3,   // [C11] Elasticidad PwC
+    Ed:  -0.6,   // [C12] Elasticidad demanda
+  },
+  constantes: {              // Constantes A del modelo Q = A·P^E
+    AoPwC: 8390.45037657611,    // [G5]  AoPwC
+    AoC:   224677.615639427,    // [G6]  AoC
+    Ad:    1809686.566518604,   // [G7]  Ad
+  },
+  // Coste total de plantilla pre-IA [M17] (valor fijo en el Excel)
+  costeTotalPre: 63000,
+  // Pirámide de plantilla: [K4:Q16] nombre, FTE [L], Costes [M], Factor IA [C25:C37]
+  plantilla: [
+    { cat: 'Partner',          fte: 24,  coste: 5480, factorIA: 0.25 },
+    { cat: 'Salaried Partner', fte: 51,  coste: 8740, factorIA: 0.35 },
+    { cat: 'Director',         fte: 68,  coste: 8960, factorIA: 0.45 },
+    { cat: 'Senior Manager',   fte: 92,  coste: 8010, factorIA: 0.60 },
+    { cat: 'Manager',          fte: 124, coste: 7420, factorIA: 0.80 },
+    { cat: 'Senior Associate', fte: 207, coste: 8890, factorIA: 1.15 },
+    { cat: 'Associate',        fte: 228, coste: 5340, factorIA: 1.60 },
+    { cat: 'Senior Manager 2', fte: 5,   coste: 360,  factorIA: 0.60 },
+    { cat: 'Specialist 5',     fte: 7,   coste: 310,  factorIA: 1.00 },
+    { cat: 'Specialist 4',     fte: 6,   coste: 280,  factorIA: 1.00 },
+    { cat: 'Specialist 3',     fte: 8,   coste: 340,  factorIA: 1.00 },
+    { cat: 'C. Producción',    fte: 138, coste: 5660, factorIA: 1.70 },
+    { cat: 'Becarios',         fte: 102, coste: 1040, factorIA: 2.20 },
+  ],
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAPA 2 — MOTOR DE CÁLCULO  (porte fiel de las fórmulas de la hoja «Modelo»)
+   --------------------------------------------------------------------------
+   inputs (todos en tanto por uno, ej. 0.20 = 20%):
+     prodPwC    [C15] productividad propia
+     prodC      [C16] productividad mercado/competencia
+     internaliz [C19] internalización de clientes
+     nuevaDem   [C20] nueva demanda por servicios nuevos
+     restruct   [C22] % de reestructuración aplicada
+   ════════════════════════════════════════════════════════════════════════════ */
+function runModel(inputs, cfg = MODEL_CONFIG) {
+  const { prodPwC, prodC, internaliz, nuevaDem, restruct } = inputs;
+  const C6 = cfg.mercado.precio;
+  const { Eo, EPwC, Ed } = cfg.elasticidades;
+  const { AoPwC: G5, AoC: G6, Ad: G7 } = cfg.constantes;
+
+  // ── Equilibrio de mercado (Q = A·P^E) ──
+  const G4 = C6;                                   // precio pre-IA
+  const G8 = G5 * G4 ** Eo;                         // [G8]  Q PwC pre
+  const G9 = G6 * G4 ** EPwC;                       // [G9]  Q competencia pre
+  const G10 = G7 * G4 ** Ed;                        // [G10] Q demanda pre
+
+  const I5 = G5 * (1 + prodPwC);                    // [I5] A oferta PwC post
+  const I6 = G6 * (1 + prodC);                      // [I6] A oferta comp. post
+  const I7 = G7 * (1 + (nuevaDem - internaliz));    // [I7] A demanda post
+  const I4 = (I7 / (I5 + I6)) ** (1 / (Eo - Ed));   // [I4] precio post (equilibrio)
+  const I8 = I5 * I4 ** Eo;                         // [I8]  Q PwC post
+  const I9 = I6 * I4 ** EPwC;                        // [I9]  Q competencia post
+  const I10 = I7 * I4 ** Ed;                        // [I10] Q demanda post
+
+  // ── Cascada de reestructuración de plantilla ──
+  const staff = cfg.plantilla;
+  const L17 = staff.reduce((s, r) => s + r.fte, 0);     // FTE total pre
+  const Q = staff.map(r => r.coste / G8);               // [Q] coste por proyecto
+  const Pcoste = staff.map(r => r.coste / r.fte);       // [P] coste por FTE
+  const Q17 = Q.reduce((a, b) => a + b, 0);
+  const L20 = 1 - (1 / (1 + prodPwC));                  // [L20] factor ahorro
+  const N20 = I8;                                       // [N20]
+  const Q20 = restruct;                                 // [Q20]
+  const L35 = Q17 * L20;
+  const T = staff.map((r, i) => Q[i] * r.factorIA);     // [T] coste ponderado
+  const T35 = T.reduce((a, b) => a + b, 0);
+  const U = T.map(t => t / T35);                        // [U] peso
+  const Lc = U.map(u => u * L35);                       // ahorro
+  const Mc = Q.map((q, i) => q - Lc[i]);                // costes
+  const Nc = Mc.map(m => m * N20);                      // coste total
+  const Oc = Nc.map((n, i) => n / Pcoste[i]);           // FTE teórico
+  const Pv = Oc.map((o, i) => o - staff[i].fte);        // variación
+  const Qr = Pv.map(p => p * Q20);                      // reestructuración
+  const Rc = Oc.map((o, i) => o + Qr[i] - Pv[i]);       // FTE final
+  const Sc = Rc.map((r, i) => r * Pcoste[i]);           // coste final
+  const S35 = Sc.reduce((a, b) => a + b, 0);            // coste total post
+  const R35 = Rc.reduce((a, b) => a + b, 0);            // FTE total post
+
+  // ── Resultados ──
+  const ingPre = G4 * G8,  ingPost = I4 * I8;
+  const costPre = cfg.costeTotalPre, costPost = S35;
+  const margPre = ingPre - costPre, margPost = ingPost - costPost;
+  const sharePre = G8 / G10, sharePost = I8 / I10;
+  const valorIA = (I8 - G8) * G4;          // [G31] valor generado por IA
+  const valorClientes = (G4 - I4) * I8;    // [G28] valor trasladado a clientes
+  const valorFirma = margPost - margPre;   // [G29 ~ H21]
+
+  return {
+    precioPre: G4, precioPost: I4,
+    ingPre, ingPost, ingDif: ingPost - ingPre,
+    costPre, costPost, costDif: costPost - costPre,
+    margPre, margPost, margDif: margPost - margPre,
+    pctMargPre: margPre / ingPre, pctMargPost: margPost / ingPost,
+    ftePre: L17, ftePost: R35, fteDif: R35 - L17,
+    sharePre, sharePost, shareDif: sharePost - sharePre,
+    valorIA, valorClientes, valorFirma,
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAPA 3 — INTERFAZ
+   ════════════════════════════════════════════════════════════════════════════ */
+const PRESETS = {
+  nada:     { prodPwC: 0,  prodC: 5,  restruct: 0,  nuevaDem: 0,  intern: 0 },
+  moderado: { prodPwC: 10, prodC: 8,  restruct: 40, nuevaDem: 5,  intern: 3 },
+  agresivo: { prodPwC: 20, prodC: 5,  restruct: 80, nuevaDem: 10, intern: 0 },
+};
+
+const $ = id => document.getElementById(id);
+const M = v => (v / 1000);  // miles de € → millones de €
+const fmtM = v => (v >= 0 ? '' : '−') + '€' + Math.abs(M(v)).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + 'M';
+const fmtPct = v => (v * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + '%';
+const fmtInt = v => Math.round(v).toLocaleString('es-ES');
+
+function readInputs() {
+  return {
+    prodPwC: +$('prodPwC').value / 100,
+    prodC: +$('prodC').value / 100,
+    restruct: +$('restruct').value / 100,
+    nuevaDem: +$('nuevaDem').value / 100,
+    internaliz: +$('intern').value / 100,
+  };
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  $('prodPwC').value = p.prodPwC;
+  $('prodC').value = p.prodC;
+  $('restruct').value = p.restruct;
+  $('nuevaDem').value = p.nuevaDem;
+  $('intern').value = p.intern;
+  document.querySelectorAll('.preset-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.preset === name));
+  onInput(true);
+}
+
+function toggleAdv() {
+  const f = $('advFields');
+  f.classList.toggle('open');
+  $('advToggle').textContent = (f.classList.contains('open') ? '▾' : '▸') + ' Supuestos avanzados';
+}
+
+let charts = {};
+
+function onInput(fromPreset = false) {
+  // Etiquetas
+  $('v_prodPwC').textContent = $('prodPwC').value + '%';
+  $('v_prodC').textContent = $('prodC').value + '%';
+  $('v_restruct').textContent = $('restruct').value + '%';
+  $('v_nuevaDem').textContent = $('nuevaDem').value + '%';
+  $('v_intern').textContent = $('intern').value + '%';
+  $('v_horizon').textContent = $('horizon').value + ' años';
+
+  if (!fromPreset) document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+
+  const inputs = readInputs();
+  const horizon = +$('horizon').value;
+
+  const mine = runModel(inputs);
+  // "No hacer nada": tú a 0, pero el mercado sigue avanzando (mismo prodC e internalización)
+  const nada = runModel({ ...inputs, prodPwC: 0, restruct: 0, nuevaDem: 0 });
+  const pre = mine.margPre;
+
+  // ── Coste de no actuar (margen anual perdido vs no hacer nada) ──
+  const gap = mine.margPost - nada.margPost;
+  $('heroCost').textContent = (gap >= 0 ? '+' : '') + fmtM(gap);
+
+  renderKPIs(mine);
+  renderMarginChart(pre, nada.margPost, mine.margPost);
+  renderRampChart(inputs, horizon);
+  renderValueChart(mine);
+}
+
+function renderKPIs(r) {
+  const delta = (v) => {
+    const cls = v >= 0 ? 'up' : 'down';
+    const arrow = v >= 0 ? '▲' : '▼';
+    return `<span class="kpi-delta ${cls}">${arrow} ${fmtM(v)}</span>`;
+  };
+  const deltaPct = (v) => {
+    const cls = v >= 0 ? 'up' : 'down';
+    const arrow = v >= 0 ? '▲' : '▼';
+    return `<span class="kpi-delta ${cls}">${arrow} ${fmtPct(Math.abs(v))}</span>`;
+  };
+  const deltaInt = (v) => {
+    const cls = v >= 0 ? 'up' : 'down';
+    const arrow = v >= 0 ? '▲' : '▼';
+    return `<span class="kpi-delta ${cls}">${arrow} ${fmtInt(Math.abs(v))} FTE</span>`;
+  };
+  $('kpiGrid').innerHTML = `
+    <div class="kpi"><span class="kpi-lbl">Margen</span><span class="kpi-val">${fmtM(r.margPost)}</span>${delta(r.margDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">% Margen</span><span class="kpi-val">${fmtPct(r.pctMargPost)}</span>${deltaPct(r.pctMargPost - r.pctMargPre)}</div>
+    <div class="kpi"><span class="kpi-lbl">Ingresos</span><span class="kpi-val">${fmtM(r.ingPost)}</span>${delta(r.ingDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Plantilla</span><span class="kpi-val">${fmtInt(r.ftePost)}</span>${deltaInt(r.fteDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Cuota de mercado</span><span class="kpi-val">${fmtPct(r.sharePost)}</span>${deltaPct(r.shareDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Precio / proyecto</span><span class="kpi-val">€${r.precioPost.toLocaleString('es-ES',{maximumFractionDigits:2})}k</span>${deltaPct((r.precioPost-r.precioPre)/r.precioPre)}</div>
+  `;
+}
+
+const COL = { pre: '#8892aa', nada: '#ef4444', mine: '#5b7fff', good: '#22c55e' };
+function baseOpts(yTitle) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#e2e8f0', font: { size: 12 } } } },
+    scales: {
+      x: { ticks: { color: '#8892aa' }, grid: { color: 'rgba(46,51,80,0.5)' } },
+      y: { ticks: { color: '#8892aa', callback: v => '€' + v + 'M' }, grid: { color: 'rgba(46,51,80,0.5)' },
+           title: { display: !!yTitle, text: yTitle, color: '#8892aa' } },
+    },
+  };
+}
+
+function renderMarginChart(pre, nada, mine) {
+  const data = [M(pre), M(nada), M(mine)];
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels: ['Hoy (pre-IA)', 'No hacer nada', 'Tu escenario'],
+      datasets: [{ label: 'Margen (M€)', data,
+        backgroundColor: [COL.pre, COL.nada, COL.mine], borderRadius: 6 }],
+    },
+    options: { ...baseOpts(), plugins: { legend: { display: false } } },
+  };
+  upsert('chartMargin', cfg);
+}
+
+function renderRampChart(inputs, horizon) {
+  const years = [], mineSeries = [], nadaSeries = [];
+  let cumGap = 0;
+  for (let t = 0; t <= horizon; t++) {
+    const f = horizon === 0 ? 1 : t / horizon;  // rampa lineal de adopción
+    years.push('Año ' + t);
+    const mine = runModel({
+      prodPwC: inputs.prodPwC * f, prodC: inputs.prodC * f,
+      restruct: inputs.restruct * f, nuevaDem: inputs.nuevaDem * f,
+      internaliz: inputs.internaliz * f,
+    });
+    // No hacer nada: el mercado igualmente avanza con la rampa
+    const nada = runModel({ prodPwC: 0, prodC: inputs.prodC * f, restruct: 0, nuevaDem: 0, internaliz: inputs.internaliz * f });
+    mineSeries.push(M(mine.margPost));
+    nadaSeries.push(M(nada.margPost));
+    if (t > 0) cumGap += (mine.margPost - nada.margPost);
+  }
+  const cfg = {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        { label: 'Tu escenario', data: mineSeries, borderColor: COL.mine,
+          backgroundColor: 'rgba(91,127,255,0.12)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'No hacer nada', data: nadaSeries, borderColor: COL.nada,
+          backgroundColor: 'rgba(239,68,68,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderDash: [6, 4] },
+      ],
+    },
+    options: baseOpts(),
+  };
+  upsert('chartRamp', cfg);
+}
+
+function renderValueChart(r) {
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels: ['Valor total IA', 'Captura la firma', 'Va a clientes'],
+      datasets: [{ label: 'M€', data: [M(r.valorIA), M(r.valorFirma), M(r.valorClientes)],
+        backgroundColor: [COL.mine, COL.good, COL.nada], borderRadius: 6 }],
+    },
+    options: { ...baseOpts(), indexAxis: 'y', plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#8892aa', callback: v => '€' + v + 'M' }, grid: { color: 'rgba(46,51,80,0.5)' } },
+                y: { ticks: { color: '#e2e8f0' }, grid: { display: false } } } },
+  };
+  upsert('chartValue', cfg);
+  $('valueNote').textContent =
+    'El "valor total de la IA" es la eficiencia generada (más proyectos al precio original). ' +
+    'Si no compites, una parte se traslada a los clientes vía precio en lugar de quedarse en tu margen.';
+}
+
+function upsert(id, cfg) {
+  if (charts[id]) { charts[id].data = cfg.data; charts[id].options = cfg.options; charts[id].update(); }
+  else charts[id] = new Chart($(id), cfg);
+}
+
+// init
+applyPreset('agresivo');
+</script>
+</body>
+</html>
