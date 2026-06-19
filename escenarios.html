@@ -120,6 +120,53 @@
     .chart-wrap.chart-sm { height: 220px; }
     .dash-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 
+    /* ── CUESTIONARIO ── */
+    #quiz { padding: 40px 24px; display: flex; justify-content: center; }
+    .quiz-wrap { width: 100%; max-width: 760px; }
+    .quiz-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .quiz-head p { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 640px; }
+    .quiz-progress { height: 6px; background: var(--surface2); border-radius: 4px; margin: 24px 0 8px; overflow: hidden; }
+    .quiz-progress-bar { height: 100%; background: var(--accent); width: 0; transition: width .3s; border-radius: 4px; }
+    .quiz-step-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 18px; }
+    .crit-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .crit-desc { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+    .q-block { margin-bottom: 24px; }
+    .q-text { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+    .q-text .q-weight { font-size: 11px; color: var(--muted); font-weight: 400; }
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opt {
+      text-align: left; padding: 12px 14px; border-radius: 10px; font-size: 13px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all .12s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .opt:hover { border-color: var(--accent-light); }
+    .opt.selected { border-color: var(--accent); background: var(--good-bg); }
+    .opt .opt-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+    .opt.selected .opt-dot { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
+    .crit-result {
+      margin-top: 8px; padding: 14px 16px; border-radius: 10px; background: var(--surface);
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+    }
+    .crit-result .cr-lbl { font-size: 13px; color: var(--muted); }
+    .crit-result .cr-val { font-size: 22px; font-weight: 800; color: var(--accent); }
+    .quiz-nav { display: flex; align-items: center; gap: 16px; margin-top: 28px; }
+    .quiz-skip { margin-left: auto; font-size: 12px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+    .quiz-skip:hover { color: var(--text); }
+    .qbtn { padding: 10px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); transition: all .15s; }
+    .qbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .qbtn.primary:hover { background: var(--accent-light); }
+    .qbtn.ghost { background: transparent; color: var(--muted); }
+    .qbtn.ghost:hover { color: var(--text); border-color: var(--muted); }
+    .qbtn:disabled { opacity: .4; cursor: not-allowed; }
+    /* Resumen final */
+    .summary-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .sum-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    .sum-row .sum-name { font-weight: 600; font-size: 14px; flex: 1; }
+    .sum-row .sum-bar { flex: 2; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .sum-row .sum-bar > div { height: 100%; background: var(--accent); border-radius: 4px; }
+    .sum-row .sum-val { font-weight: 800; font-size: 15px; min-width: 56px; text-align: right; }
+    .sum-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+
     .legend-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
     /* ── TABS ── */
@@ -168,7 +215,26 @@
   <div class="header-right">Modelo de equilibrio de mercado · cifras sintéticas</div>
 </header>
 
-<main>
+<!-- ══ PANTALLA 1: CUESTIONARIO ══ -->
+<section id="quiz">
+  <div class="quiz-wrap">
+    <div class="quiz-head">
+      <h1>Construye tu escenario</h1>
+      <p>Responde unas pocas preguntas por cada palanca de impacto de la IA. Con tus respuestas
+      calcularemos el escenario y lo verás en el formato de seguimiento del comité.</p>
+    </div>
+    <div class="quiz-progress"><div class="quiz-progress-bar" id="quizProgressBar"></div></div>
+    <div class="quiz-step-label" id="quizStepLabel"></div>
+    <div id="quizBody"></div>
+    <div class="quiz-nav">
+      <button class="qbtn ghost" id="quizBack" onclick="quizPrev()">← Atrás</button>
+      <span class="quiz-skip" onclick="skipQuiz()">Saltar y usar ejemplo</span>
+      <button class="qbtn primary" id="quizNext" onclick="quizNext()">Siguiente →</button>
+    </div>
+  </div>
+</section>
+
+<main id="appView" style="display:none">
 
   <!-- HERO -->
   <div class="hero">
@@ -178,6 +244,7 @@
       capturan las eficiencias de la IA y tú no, el valor se traslada a los clientes vía precio y
       pierdes margen y cuota. Ajusta los supuestos y compara <strong>tu escenario</strong> frente a
       <strong>no hacer nada</strong>.</p>
+      <button class="qbtn ghost" style="margin-top:14px" onclick="openQuiz()">↩ Editar respuestas del cuestionario</button>
     </div>
     <div class="hero-cost">
       <div class="lbl">Coste de no actuar</div>
@@ -400,6 +467,96 @@ const MODEL_CONFIG = {
         { uge: 'TRS', peso: 0.118 }, { uge: 'LMS', peso: 0.039 } ] },
     ],
   },
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN DEL CUESTIONARIO  (editable: preguntas, opciones, pesos, rangos)
+   --------------------------------------------------------------------------
+   Cada opción vale 0,1,2,3 puntos (= su posición en la lista).
+   Puntuación ponderada por criterio:
+     intensidad = Σ ( peso_pregunta × idxOpción/3 )      (Σ pesos = 1)
+     valor%     = min + intensidad × (max − min)
+   El criterio F (Inversión) es un "gate": no produce un valor de slider, sino
+   un multiplicador que escala prodPwC y nuevaDem (ver gate).
+   ════════════════════════════════════════════════════════════════════════════ */
+const QUESTIONNAIRE_CONFIG = {
+  // gate de inversión: multiplicador = base + slope × intensidadInversión
+  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'nuevaDem'] },
+  // V2 (desactivado): la inversión pasará a restar margen como coste real.
+  costeIA: { activo: false, importe: 0, _nota: 'Placeholder para el coste de IA en V2.' },
+  criterios: [
+    { id: 'A', titulo: 'Productividad propia', desc: '¿Cuánta eficiencia capturas tú con la IA?',
+      slider: 'prodPwC', min: 0, max: 50, preguntas: [
+        { id: 'A1', texto: 'Nivel de adopción real de IA en los equipos', peso: 0.5, opciones: [
+          'Pilotos aislados / uso individual no sistemático',
+          'Herramientas desplegadas, pero sin cambiar procesos',
+          'Procesos clave rediseñados con IA en varias áreas',
+          'IA integrada en el core operativo y la forma de trabajar' ] },
+        { id: 'A2', texto: '% de tareas de tus equipos asistibles/automatizables por IA', peso: 0.3, opciones: [
+          'Menos del 20%', 'Entre 20% y 40%', 'Entre 40% y 60%', 'Más del 60%' ] },
+        { id: 'A3', texto: 'Capacitación y gobierno (¿saben y pueden usarla?)', peso: 0.2, opciones: [
+          'Sin formación ni gobierno',
+          'Formación puntual',
+          'Programa de formación + gobierno de datos/IA',
+          'Cultura data-driven, roles dedicados, KPIs de adopción' ] },
+      ] },
+    { id: 'B', titulo: 'Productividad del mercado', desc: '¿Cómo de rápido avanza la competencia?',
+      slider: 'prodC', min: 0, max: 50, preguntas: [
+        { id: 'B1', texto: 'Agresividad de los competidores en IA', peso: 0.6, opciones: [
+          'Rezagados, poca inversión visible',
+          'Algunos invierten, la mayoría espera',
+          'Los líderes ya compiten con IA',
+          'Adopción generalizada, es el estándar del mercado' ] },
+        { id: 'B2', texto: 'Presión de nuevos entrantes (legaltech, Big4-tech, in-house de clientes)', peso: 0.4, opciones: [
+          'Baja', 'Moderada', 'Alta', 'Muy alta, ya capturan cuota' ] },
+      ] },
+    { id: 'C', titulo: 'Reestructuración de plantilla', desc: '¿Qué parte del excedente de capacidad ajustas?',
+      slider: 'restruct', min: 0, max: 100, preguntas: [
+        { id: 'C1', texto: 'Disposición / mandato para ajustar capacidad', peso: 0.5, opciones: [
+          'No se contempla, se mantiene plantilla',
+          'Solo no-reposición de bajas naturales',
+          'Reasignación + congelación selectiva',
+          'Ajuste activo de capacidad alineado a la eficiencia' ] },
+        { id: 'C2', texto: 'Velocidad del ajuste', peso: 0.2, opciones: [
+          'No aplica', 'Muy gradual (>3 años)', 'Medio (1–3 años)', 'Rápido (<1 año)' ] },
+        { id: 'C3', texto: 'Reconversión vs. salida del excedente', peso: 0.3, opciones: [
+          'Recoloco todo el excedente (no reduzco)',
+          'Mayoría recolocación',
+          'Mezcla equilibrada',
+          'Principalmente ajuste de capacidad' ] },
+      ] },
+    { id: 'D', titulo: 'Nuevos servicios', desc: '¿Cuánta demanda nueva generas con servicios habilitados por IA?',
+      slider: 'nuevaDem', min: 0, max: 50, preguntas: [
+        { id: 'D1', texto: 'Madurez del roadmap de nuevos servicios IA', peso: 0.6, opciones: [
+          'Sin roadmap', 'Ideas exploratorias', 'Roadmap con pilotos/clientes', 'Servicios ya en mercado escalando' ] },
+        { id: 'D2', texto: 'Capacidad comercial para venderlos', peso: 0.4, opciones: [
+          'Limitada', 'En desarrollo', 'Equipo y pipeline dedicados', 'Motor comercial probado, cross-sell activo' ] },
+      ] },
+    { id: 'E', titulo: 'Internalización de clientes', desc: 'Riesgo de perder demanda: ¿cuánto trabajo se llevan los clientes con su propia IA?',
+      slider: 'intern', min: 0, max: 30, preguntas: [
+        { id: 'E1', texto: 'Capacidad de tus clientes para hacerlo in-house con IA', peso: 0.5, opciones: [
+          'Baja', 'Algunos grandes clientes', 'Muchos con equipos/tech', 'Mayoría con capacidad real' ] },
+        { id: 'E2', texto: 'Grado de commoditización de tu cartera', peso: 0.5, opciones: [
+          'Muy especializado, difícil de internalizar',
+          'Mayoría especializado',
+          'Parte relevante commoditizable',
+          'Cartera muy commoditizable / volumen' ] },
+      ] },
+    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y los nuevos servicios).',
+      tipo: 'gate', preguntas: [
+        { id: 'F1', texto: 'Tecnología (licencias, plataformas, infraestructura, datos)', peso: 0.4, opciones: [
+          'Sin presupuesto dedicado',
+          'Gasto puntual en herramientas',
+          'Presupuesto recurrente en plataformas/datos',
+          'Inversión estratégica sostenida (plataformas propias/integración profunda)' ] },
+        { id: 'F2', texto: 'Equipo (talento dedicado a IA)', peso: 0.3, opciones: [
+          'Nadie dedicado', 'Champions a tiempo parcial', 'Equipo/función de IA dedicada',
+          'Capacidad multidisciplinar (data+producto+negocio) escalada' ] },
+        { id: 'F3', texto: 'Tiempo de desarrollo (esfuerzo de implementación/rediseño)', peso: 0.3, opciones: [
+          'Sin tiempo asignado', 'Iniciativas en los huecos', 'Roadmap con horas y sponsor',
+          'Programa con dedicación significativa y objetivos' ] },
+      ] },
+  ],
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -773,8 +930,135 @@ function upsert(id, cfg) {
   else charts[id] = new Chart($(id), cfg);
 }
 
-// init
+/* ════════════════════════════════════════════════════════════════════════════
+   CUESTIONARIO — render, puntuación y conexión con el modelo
+   ════════════════════════════════════════════════════════════════════════════ */
+const QC = QUESTIONNAIRE_CONFIG;
+const quizAnswers = {};   // { A: {A1:idx, ...}, ... }
+let quizStep = 0;
+
+// Intensidad ponderada de un criterio (0…1)
+function critIntensity(crit) {
+  const a = quizAnswers[crit.id] || {};
+  let s = 0;
+  for (const q of crit.preguntas) s += q.peso * ((a[q.id] || 0) / 3);
+  return s;
+}
+function critValue(crit) {           // valor% para criterios con slider (A–E)
+  return crit.min + critIntensity(crit) * (crit.max - crit.min);
+}
+function gateMultiplier() {           // F → multiplicador
+  const F = QC.criterios.find(c => c.tipo === 'gate');
+  return QC.gate.base + QC.gate.slope * critIntensity(F);
+}
+
+function selectOpt(critId, qId, idx) {
+  (quizAnswers[critId] = quizAnswers[critId] || {})[qId] = idx;
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const total = QC.criterios.length;
+  const body = $('quizBody');
+
+  if (quizStep < total) {
+    const crit = QC.criterios[quizStep];
+    const a = quizAnswers[crit.id] || {};
+    $('quizProgressBar').style.width = (quizStep / total * 100) + '%';
+    $('quizStepLabel').textContent = `Criterio ${quizStep + 1} de ${total}`;
+
+    let h = `<div class="crit-title">${crit.titulo}</div><div class="crit-desc">${crit.desc}</div>`;
+    for (const q of crit.preguntas) {
+      h += `<div class="q-block"><div class="q-text">${q.texto} <span class="q-weight">· peso ${q.peso}</span></div><div class="opts">`;
+      q.opciones.forEach((op, i) => {
+        const sel = a[q.id] === i ? ' selected' : '';
+        h += `<button class="opt${sel}" onclick="selectOpt('${crit.id}','${q.id}',${i})"><span class="opt-dot"></span><span>${op}</span></button>`;
+      });
+      h += `</div></div>`;
+    }
+    // Resultado en vivo del criterio
+    if (crit.tipo === 'gate') {
+      const inten = critIntensity(crit), g = QC.gate.base + QC.gate.slope * inten;
+      h += `<div class="crit-result"><span class="cr-lbl">Nivel de inversión → multiplicador sobre productividad y nuevos servicios</span><span class="cr-val">×${g.toFixed(2)}</span></div>`;
+    } else {
+      h += `<div class="crit-result"><span class="cr-lbl">Resultado de este criterio</span><span class="cr-val">${Math.round(critValue(crit))}%</span></div>`;
+    }
+    body.innerHTML = h;
+    $('quizBack').disabled = quizStep === 0;
+    $('quizNext').textContent = (quizStep === total - 1) ? 'Ver resumen →' : 'Siguiente →';
+  } else {
+    // Resumen final
+    $('quizProgressBar').style.width = '100%';
+    $('quizStepLabel').textContent = 'Resumen de tu escenario';
+    const g = gateMultiplier();
+    let h = '<div class="crit-title">Tu escenario calculado</div><div class="crit-desc">Estos son los valores que alimentarán el modelo. Podrás afinarlos con los sliders en el dashboard.</div><div class="summary-grid">';
+    for (const crit of QC.criterios) {
+      if (crit.tipo === 'gate') {
+        h += sumRow('Inversión en IA (gate)', g, `×${g.toFixed(2)}`, (g - QC.gate.base) / QC.gate.slope);
+      } else {
+        let v = critValue(crit);
+        const gated = QC.gate.escala.includes(crit.slider);
+        const vf = gated ? v * g : v;
+        const extra = gated ? ` <span style="color:var(--muted);font-weight:400">(antes del gate ${Math.round(v)}%)</span>` : '';
+        h += sumRow(crit.titulo, vf / crit.max, `${Math.round(vf)}%${extra}`, vf / crit.max);
+      }
+    }
+    h += '</div>';
+    h += `<div class="sum-note">El <strong>gate de inversión (×${g.toFixed(2)})</strong> escala la productividad propia y los nuevos servicios: sin inversión suficiente no se captura todo el retorno. La inversión todavía no resta margen (eso llegará en el V2 del motor).</div>`;
+    body.innerHTML = h;
+    $('quizBack').disabled = false;
+    $('quizNext').textContent = 'Ver el Dashboard →';
+  }
+}
+function sumRow(name, frac, valTxt) {
+  const w = Math.max(0, Math.min(100, frac * 100));
+  return `<div class="sum-row"><span class="sum-name">${name}</span><span class="sum-bar"><div style="width:${w}%"></div></span><span class="sum-val">${valTxt}</span></div>`;
+}
+
+function quizNext() {
+  const total = QC.criterios.length;
+  if (quizStep >= total) { finishQuiz(); return; }
+  quizStep++; renderQuiz();
+  $('quiz').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function quizPrev() { if (quizStep > 0) { quizStep--; renderQuiz(); } }
+
+// Aplica un % al slider correspondiente (respetando su step/min/max)
+function setSlider(id, pct) {
+  const el = $(id), step = +el.step || 1, min = +el.min, max = +el.max;
+  let v = Math.round(pct / step) * step;
+  v = Math.max(min, Math.min(max, v));
+  el.value = v;
+}
+function applyQuizToModel() {
+  const g = gateMultiplier();
+  for (const crit of QC.criterios) {
+    if (crit.tipo === 'gate') continue;
+    let v = critValue(crit);
+    if (QC.gate.escala.includes(crit.slider)) v *= g;
+    setSlider(crit.slider, v);
+  }
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  onInput();
+}
+function showAppView() {
+  $('quiz').style.display = 'none';
+  $('appView').style.display = 'flex';
+  Object.values(charts).forEach(c => c.resize());
+  window.scrollTo({ top: 0 });
+}
+function finishQuiz() { applyQuizToModel(); showAppView(); }
+function skipQuiz() { showAppView(); }   // mantiene el preset de ejemplo ya cargado
+function openQuiz() {
+  $('appView').style.display = 'none';
+  $('quiz').style.display = 'flex';
+  renderQuiz();
+  window.scrollTo({ top: 0 });
+}
+
+// init: precarga un ejemplo (para "saltar") y arranca en el cuestionario
 applyPreset('agresivo');
+renderQuiz();
 </script>
 </body>
 </html>
