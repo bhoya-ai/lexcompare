@@ -237,6 +237,10 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .reporte-table tr.all .col-name { background: #ead9c8; }
     .reporte-table tr.uge .col-name { padding-left: 26px; color: var(--muted); font-weight: 400; }
     .reporte-table td.mstart { border-left: 1px solid var(--border); }
+    .verify-table { width: 100%; }
+    .verify-table .col-name { min-width: 280px; white-space: normal; }
+    .verify-table .vcell { color: var(--muted); font-size: 10px; text-align: left; }
+    .verify-table td:nth-child(3), .verify-table td:nth-child(4), .verify-table th:nth-child(3), .verify-table th:nth-child(4) { font-variant-numeric: tabular-nums; }
     .pct-good { color: var(--good); font-weight: 700; }
     .pct-bad { color: var(--bad); font-weight: 700; }
     .pct-warn { color: var(--warn); font-weight: 700; }
@@ -379,6 +383,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <button class="tab-btn active" data-tab="dashboard" onclick="setTab('dashboard')">Dashboard</button>
         <button class="tab-btn" data-tab="reporte" onclick="setTab('reporte')">Reporte mensual</button>
         <button class="tab-btn" data-tab="piramide" onclick="setTab('piramide')">Pirámide de categorías</button>
+        <button class="tab-btn" data-tab="verify" onclick="setTab('verify')">Verificación</button>
       </div>
 
       <!-- PANE: DASHBOARD -->
@@ -435,6 +440,19 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <div class="legend-note">
           La reestructuración se concentra en las categorías con mayor factor de automatización
           (base de la pirámide): a mayor factor IA, mayor reducción relativa de FTE.
+        </div>
+      </div>
+
+      <!-- PANE: VERIFICACIÓN -->
+      <div class="pane" id="pane-verify">
+        <div class="section-title">Verificación — datos de comprobación frente a tu hoja «Modelo»</div>
+        <div class="legend-note" style="margin-top:0">
+          Pon los sliders con los mismos supuestos que tu Excel (productividad propia/mercado, reestructuración,
+          nuevos servicios, internalización) y compara estas cifras celda a celda. Valores en las mismas
+          unidades que la hoja (miles de €). La referencia [celda] es la posición en tu Excel.
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table class="reporte-table verify-table" id="verifyTable"></table>
         </div>
       </div>
 
@@ -645,6 +663,8 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
   const I8 = I5 * I4 ** Eo;                         // [I8]  Q PwC post
   const I9 = I6 * I4 ** EPwC;                        // [I9]  Q competencia post
   const I10 = I7 * I4 ** Ed;                        // [I10] Q demanda post
+  const G11 = G8 + G9 - G10;                        // [G11] equilibrio pre (oferta − demanda)
+  const I11 = I8 + I9 - I10;                        // [I11] equilibrio post
 
   // ── Cascada de reestructuración de plantilla ──
   const staff = cfg.plantilla;
@@ -677,17 +697,23 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
   const sharePre = G8 / G10, sharePost = I8 / I10;
   const valorIA = (I8 - G8) * G4;          // [G31] valor generado por IA
   const valorClientes = (G4 - I4) * I8;    // [G28] valor trasladado a clientes
-  const valorFirma = margPost - margPre;   // [G29 ~ H21]
+  const valorFirma = margPost - margPre;   // [G29 = H21] equities (variación de margen)
+  const valorStaff = costPost - costPre;   // [G30 = H20] staff (variación de coste)
 
   return {
     precioPre: G4, precioPost: I4,
+    // Equilibrios P·Q (datos de comprobación de la hoja «Modelo»)
+    qPwcPre: G8, qPwcPost: I8,             // [G8/I8]  oferta PwC (firma)
+    qCompPre: G9, qCompPost: I9,           // [G9/I9]  oferta competencia (mercado)
+    qDemPre: G10, qDemPost: I10,           // [G10/I10] demanda
+    eqPre: G11, eqPost: I11,               // [G11/I11] equilibrio (oferta − demanda)
     ingPre, ingPost, ingDif: ingPost - ingPre,
     costPre, costPost, costDif: costPost - costPre,
     margPre, margPost, margDif: margPost - margPre,
     pctMargPre: margPre / ingPre, pctMargPost: margPost / ingPost,
     ftePre: L17, ftePost: R35, fteDif: R35 - L17,
     sharePre, sharePost, shareDif: sharePost - sharePre,
-    valorIA, valorClientes, valorFirma,
+    valorIA, valorClientes, valorFirma, valorStaff,
     // Efecto en la pirámide de categorías profesionales (FTE por categoría)
     piramide: staff.map((r, i) => ({ cat: r.cat, pre: r.fte, post: Rc[i], dif: Rc[i] - r.fte })),
   };
@@ -803,6 +829,7 @@ function onInput(fromPreset = false) {
   renderValueChart(mine);
   renderReporte();
   renderPyramid(mine);
+  renderVerify(mine);
 }
 
 /* ── Pestañas ── */
@@ -911,6 +938,41 @@ function renderPyramid(r) {
   upsert('chartPyramid', cfg);
 }
 
+/* ── Verificación: datos de comprobación frente a la hoja «Modelo» ── */
+function renderVerify(r) {
+  const n = (v, d = 2) => (v == null || isNaN(v)) ? '—' : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pc = v => (v * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + '%';
+  const sec = t => `<tr class="grp"><td class="col-name" colspan="4">${t}</td></tr>`;
+  const row = (concepto, celda, pre, post) =>
+    `<tr><td class="col-name">${concepto}</td><td class="vcell">${celda}</td><td>${pre}</td><td>${post}</td></tr>`;
+  const split = (concepto, celda, val) => {
+    const share = r.valorIA ? ` <span style="color:var(--muted)">(${pc(val / r.valorIA)})</span>` : '';
+    return `<tr><td class="col-name">${concepto}${share}</td><td class="vcell">${celda}</td><td>—</td><td>${n(val)}</td></tr>`;
+  };
+
+  let h = `<thead><tr><th class="col-name">Concepto</th><th class="vcell">Celda</th><th>Pre-IA</th><th>Post-IA</th></tr></thead><tbody>`;
+  h += sec('Modelo (Q = A · P^E)');
+  h += row('Precio (P)', 'G4 / I4', n(r.precioPre, 4), n(r.precioPost, 4));
+  h += row('Oferta PwC — firma (Q)', 'G8 / I8', n(r.qPwcPre), n(r.qPwcPost));
+  h += row('Oferta competencia — mercado (Q)', 'G9 / I9', n(r.qCompPre), n(r.qCompPost));
+  h += row('Demanda (Q)', 'G10 / I10', n(r.qDemPre), n(r.qDemPost));
+  h += row('Equilibrio (oferta − demanda)', 'G11 / I11', n(r.eqPre), n(r.eqPost));
+  h += sec('Resultados');
+  h += row('Ingresos', 'F19 / G19', n(r.ingPre), n(r.ingPost));
+  h += row('Costes', 'F20 / G20', n(r.costPre), n(r.costPost));
+  h += row('Margen', 'F21 / G21', n(r.margPre), n(r.margPost));
+  h += row('% Margen', 'F22 / G22', pc(r.pctMargPre), pc(r.pctMargPost));
+  h += row('FTE', 'L17 / R35', n(r.ftePre), n(r.ftePost));
+  h += row('Cuota de mercado', 'F24 / G24', pc(r.sharePre), pc(r.sharePost));
+  h += sec('Reparto del valor de la IA  (Clientes + Firma + Staff = Valor total)');
+  h += split('Valor total generado por la IA', 'G31', r.valorIA);
+  h += split('→ Clientes', 'G28', r.valorClientes);
+  h += split('→ Firma (equities)', 'G29', r.valorFirma);
+  h += split('→ Staff', 'G30', r.valorStaff);
+  h += '</tbody>';
+  $('verifyTable').innerHTML = h;
+}
+
 function renderKPIs(r) {
   const delta = (v) => {
     const cls = v >= 0 ? 'up' : 'down';
@@ -968,21 +1030,23 @@ function renderRevenueChart(pre, nada, mine) { compareBar('chartRevenue', 'Ingre
 function renderMarginChart(pre, nada, mine) { compareBar('chartMargin', 'Margen (M€)', pre, nada, mine); }
 
 function renderValueChart(r) {
+  // Reparto del valor de la IA en sus tres destinos (suman el valor total): [G31]=[G28]+[G29]+[G30]
   const cfg = {
     type: 'bar',
     data: {
-      labels: ['Valor total IA', 'Captura la firma', 'Va a clientes'],
-      datasets: [{ label: 'M€', data: [M(r.valorIA), M(r.valorFirma), M(r.valorClientes)],
-        backgroundColor: [COL.mine, COL.good, COL.nada], borderRadius: 6 }],
+      labels: ['Valor total IA', 'Firma (equities)', 'Staff', 'Clientes'],
+      datasets: [{ label: 'M€', data: [M(r.valorIA), M(r.valorFirma), M(r.valorStaff), M(r.valorClientes)],
+        backgroundColor: [COL.mine, COL.good, COL.pre, COL.nada], borderRadius: 6 }],
     },
     options: { ...baseOpts(), indexAxis: 'y', plugins: { legend: { display: false } },
       scales: { x: { ticks: { color: '#6b7280', callback: v => '€' + v + 'M' }, grid: { color: '#e5e7eb' } },
                 y: { ticks: { color: '#1f2329' }, grid: { display: false } } } },
   };
   upsert('chartValue', cfg);
-  $('valueNote').textContent =
-    'El "valor total de la IA" es la eficiencia generada (más proyectos al precio original). ' +
-    'Si no compites, una parte se traslada a los clientes vía precio en lugar de quedarse en tu margen.';
+  $('valueNote').innerHTML =
+    'El <strong>valor total de la IA</strong> (eficiencia generada = más proyectos al precio original) se reparte entre ' +
+    '<strong>firma</strong> (variación de margen), <strong>staff</strong> (variación de coste) y <strong>clientes</strong> ' +
+    '(traslación vía precio). Los tres suman el total. Un valor negativo indica de quién sale ese valor (p. ej. staff negativo = ahorro de coste).';
 }
 
 function upsert(id, cfg) {
