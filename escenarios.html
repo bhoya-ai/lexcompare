@@ -65,7 +65,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
       border: 1px solid rgba(226,113,29,0.3); letter-spacing: 0.5px;
     }
-    .header-right { margin-left: auto; font-size: 12px; color: var(--muted); }
+    .header-right { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 12px; }
 
     /* ── PANEL DE DATOS ── */
     #dataPanel { background: var(--surface); border-bottom: 1px solid var(--border); }
@@ -254,6 +254,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   <div class="logo">Escenarios<span>IA</span></div>
   <div class="badge">SERVICIOS PROFESIONALES</div>
   <div class="header-right">
+    <span style="font-size:11px;color:var(--muted)">v1.2</span>
     <button class="qbtn ghost" style="padding:7px 14px;font-size:13px" onclick="toggleDataPanel()">⚙ Datos</button>
   </div>
 </header>
@@ -463,8 +464,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 </main>
 
 <footer>
-  Escenarios IA · Demo conceptual · Motor económico portado del modelo financiero (hoja «Modelo»).
-  Sustituye los supuestos en el bloque <code>MODEL_CONFIG</code> para conectar tus datos reales.
+  Escenarios IA · <strong>v1.2</strong> (build 2026-06-22) · Motor económico portado del modelo financiero (hoja «Modelo»).
+  Sustituye los supuestos vía «⚙ Datos» para conectar tus datos reales.
 </footer>
 
 <script>
