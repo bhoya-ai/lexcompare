@@ -949,8 +949,29 @@ function renderVerify(r) {
     const share = r.valorIA ? ` <span style="color:var(--muted)">(${pc(val / r.valorIA)})</span>` : '';
     return `<tr><td class="col-name">${concepto}${share}</td><td class="vcell">${celda}</td><td>—</td><td>${n(val)}</td></tr>`;
   };
+  const param = (concepto, celda, val) =>
+    `<tr><td class="col-name">${concepto}</td><td class="vcell">${celda}</td><td colspan="2" style="text-align:left;font-weight:600">${val}</td></tr>`;
 
+  const C = MODEL_CONFIG, inp = readInputs();
   let h = `<thead><tr><th class="col-name">Concepto</th><th class="vcell">Celda</th><th>Pre-IA</th><th>Post-IA</th></tr></thead><tbody>`;
+  h += sec('Parámetros del modelo (LEÍDOS de tu Excel) — compáralos con tu hoja');
+  h += param('Tamaño del mercado', 'C3', n(C.mercado.tamanoMercado));
+  h += param('Tamaño PwC', 'C4', n(C.mercado.tamanoPwC));
+  h += param('Precio', 'C6', n(C.mercado.precio, 4));
+  h += param('Elasticidad oferta (Eo)', 'C10', n(C.elasticidades.Eo, 4));
+  h += param('Elasticidad PwC (EPwC)', 'C11', n(C.elasticidades.EPwC, 4));
+  h += param('Elasticidad demanda (Ed)', 'C12', n(C.elasticidades.Ed, 4));
+  h += param('Constante AoPwC', 'G5', n(C.constantes.AoPwC));
+  h += param('Constante AoC', 'G6', n(C.constantes.AoC));
+  h += param('Constante Ad', 'G7', n(C.constantes.Ad));
+  h += param('Coste total pre-IA', 'M17', n(C.costeTotalPre));
+  h += param('FTE total pre (suma plantilla)', 'L17', n(C.plantilla.reduce((s, p) => s + p.fte, 0)));
+  h += param('Escenario: productividad propia', 'C15', pc(inp.prodPwC));
+  h += param('Escenario: productividad mercado', 'C16', pc(inp.prodC));
+  h += param('Escenario: internalización', 'C19', pc(inp.internaliz));
+  h += param('Escenario: nueva demanda', 'C20', pc(inp.nuevaDem));
+  h += param('Escenario: reestructuración', 'C22', pc(inp.restruct));
+
   h += sec('Modelo (Q = A · P^E)');
   h += row('Precio (P)', 'G4 / I4', n(r.precioPre, 4), n(r.precioPost, 4));
   h += row('Oferta PwC — firma (Q)', 'G8 / I8', n(r.qPwcPre), n(r.qPwcPost));
