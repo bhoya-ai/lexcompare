@@ -180,6 +180,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .opt.selected { border-color: var(--accent); background: var(--good-bg); }
     .opt .opt-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
     .opt.selected .opt-dot { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
+    .quiz-ready { margin-top: 18px; padding: 16px 18px; border-radius: 10px; background: var(--good-bg); border: 1px solid rgba(226,113,29,0.3); font-weight: 600; color: var(--accent); }
     .crit-result {
       margin-top: 8px; padding: 14px 16px; border-radius: 10px; background: var(--surface);
       border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
@@ -317,63 +318,60 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
   <div class="layout">
 
-    <!-- CUESTIONARIO -->
+    <!-- SUPUESTOS (ajuste fino tras el cuestionario) -->
     <div class="panel">
-      <h2>Cuestionario de escenario</h2>
-      <p class="hint">Define los supuestos de adopción de IA. Los resultados se recalculan al instante.</p>
+      <h2>Supuestos del escenario</h2>
+      <p class="hint">Año 1 — calibración conservadora. Ajusta las palancas; los resultados se recalculan al instante.</p>
 
       <div class="preset-row">
         <button class="preset-btn" data-preset="nada" onclick="applyPreset('nada')">No hacer nada</button>
-        <button class="preset-btn" data-preset="moderado" onclick="applyPreset('moderado')">Moderado</button>
-        <button class="preset-btn active" data-preset="agresivo" onclick="applyPreset('agresivo')">Agresivo</button>
+        <button class="preset-btn active" data-preset="conservador" onclick="applyPreset('conservador')">Conservador</button>
+        <button class="preset-btn" data-preset="ambicioso" onclick="applyPreset('ambicioso')">Ambicioso</button>
       </div>
 
       <div class="field">
         <div class="field-head">
-          <span class="field-label">Crecimiento de tu productividad</span>
-          <span class="field-val" id="v_prodPwC">20%</span>
+          <span class="field-label">Productividad propia</span>
+          <span class="field-val" id="v_prodPwC">2,5%</span>
         </div>
-        <input type="range" id="prodPwC" min="0" max="50" step="1" value="20" oninput="onInput()">
-        <div class="field-desc">Ganancia de eficiencia que capturas internamente gracias a la IA.</div>
+        <input type="range" id="prodPwC" min="0" max="50" step="0.5" value="2.5" oninput="onInput()">
+        <div class="field-desc">Ganancia de eficiencia que capturas internamente con la IA. [C15]</div>
       </div>
 
       <div class="field">
         <div class="field-head">
-          <span class="field-label">Crecimiento de la productividad del mercado</span>
-          <span class="field-val" id="v_prodC">5%</span>
+          <span class="field-label">Productividad del mercado</span>
+          <span class="field-val" id="v_prodC">3%</span>
         </div>
-        <input type="range" id="prodC" min="0" max="50" step="1" value="5" oninput="onInput()">
-        <div class="field-desc">Lo que mejora la competencia. Avanza aunque tú no hagas nada.</div>
+        <input type="range" id="prodC" min="0" max="50" step="0.5" value="3" oninput="onInput()">
+        <div class="field-desc">Lo que mejora la competencia. Avanza aunque tú no hagas nada. [C16]</div>
       </div>
 
       <div class="field">
         <div class="field-head">
-          <span class="field-label">Personal reestructurado</span>
-          <span class="field-val" id="v_restruct">80%</span>
+          <span class="field-label">Demanda neta</span>
+          <span class="field-val" id="v_demanda">3%</span>
         </div>
-        <input type="range" id="restruct" min="0" max="100" step="5" value="80" oninput="onInput()">
-        <div class="field-desc">Qué parte del exceso de plantilla (por la mayor eficiencia) ajustas realmente.</div>
+        <input type="range" id="demanda" min="-10" max="30" step="0.5" value="3" oninput="onInput()">
+        <div class="field-desc">Nuevos servicios menos internalización de clientes (neto). [C20−C19]</div>
       </div>
 
       <div class="field">
         <div class="field-head">
-          <span class="field-label">Crecimiento por nuevos servicios</span>
-          <span class="field-val" id="v_nuevaDem">10%</span>
+          <span class="field-label">Rotación realizada</span>
+          <span class="field-val" id="v_rotacion">70%</span>
         </div>
-        <input type="range" id="nuevaDem" min="0" max="50" step="1" value="10" oninput="onInput()">
-        <div class="field-desc">Demanda adicional que generas con servicios nuevos habilitados por IA.</div>
+        <input type="range" id="rotacion" min="0" max="70" step="1" value="70" oninput="onInput()">
+        <div class="field-desc">Fracción de la rotación esperada que se materializa (≤70%; baja si el mercado crece). [C22]</div>
       </div>
 
-      <span class="adv-toggle" onclick="toggleAdv()" id="advToggle">▸ Supuestos avanzados</span>
-      <div class="adv-fields" id="advFields">
-        <div class="field">
-          <div class="field-head">
-            <span class="field-label">Internalización de clientes</span>
-            <span class="field-val" id="v_intern">0%</span>
-          </div>
-          <input type="range" id="intern" min="0" max="30" step="1" value="0" oninput="onInput()">
-          <div class="field-desc">Demanda que pierdes porque los clientes hacen el trabajo con su propia IA.</div>
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Reposición de salidas</span>
+          <span class="field-val" id="v_reposicion">0%</span>
         </div>
+        <input type="range" id="reposicion" min="0" max="100" step="5" value="0" oninput="onInput()">
+        <div class="field-desc">Qué parte de las bajas por rotación se repone. La decisión clave de plantilla. [C39]</div>
       </div>
     </div>
 
@@ -560,12 +558,15 @@ let MODEL_CONFIG = {
    ════════════════════════════════════════════════════════════════════════════ */
 const QUESTIONNAIRE_CONFIG = {
   // gate de inversión: multiplicador = base + slope × intensidadInversión
-  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'nuevaDem'] },
+  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'demanda'] },
+  // La rotación realizada se amortigua con la productividad del mercado:
+  // rotacion = base × (1 − dampen × intensidad(prodC)).
+  rotacionDamp: 0.4,
   // V2 (desactivado): la inversión pasará a restar margen como coste real.
   costeIA: { activo: false, importe: 0, _nota: 'Placeholder para el coste de IA en V2.' },
   criterios: [
     { id: 'A', titulo: 'Productividad propia', desc: '¿Cuánta eficiencia capturas tú con la IA?',
-      slider: 'prodPwC', min: 0, max: 50, preguntas: [
+      slider: 'prodPwC', min: 2, max: 3, preguntas: [
         { id: 'A1', texto: 'Nivel de adopción real de IA en los equipos', peso: 0.5, opciones: [
           'Pilotos aislados / uso individual no sistemático',
           'Herramientas desplegadas, pero sin cambiar procesos',
@@ -580,7 +581,7 @@ const QUESTIONNAIRE_CONFIG = {
           'Cultura data-driven, roles dedicados, KPIs de adopción' ] },
       ] },
     { id: 'B', titulo: 'Productividad del mercado', desc: '¿Cómo de rápido avanza la competencia?',
-      slider: 'prodC', min: 0, max: 50, preguntas: [
+      slider: 'prodC', min: 2, max: 4, preguntas: [
         { id: 'B1', texto: 'Agresividad de los competidores en IA', peso: 0.6, opciones: [
           'Rezagados, poca inversión visible',
           'Algunos invierten, la mayoría espera',
@@ -589,39 +590,36 @@ const QUESTIONNAIRE_CONFIG = {
         { id: 'B2', texto: 'Presión de nuevos entrantes (legaltech, Big4-tech, in-house de clientes)', peso: 0.4, opciones: [
           'Baja', 'Moderada', 'Alta', 'Muy alta, ya capturan cuota' ] },
       ] },
-    { id: 'C', titulo: 'Reestructuración de plantilla', desc: '¿Qué parte del excedente de capacidad ajustas?',
-      slider: 'restruct', min: 0, max: 100, preguntas: [
-        { id: 'C1', texto: 'Disposición / mandato para ajustar capacidad', peso: 0.5, opciones: [
-          'No se contempla, se mantiene plantilla',
-          'Solo no-reposición de bajas naturales',
-          'Reasignación + congelación selectiva',
-          'Ajuste activo de capacidad alineado a la eficiencia' ] },
-        { id: 'C2', texto: 'Velocidad del ajuste', peso: 0.2, opciones: [
-          'No aplica', 'Muy gradual (>3 años)', 'Medio (1–3 años)', 'Rápido (<1 año)' ] },
-        { id: 'C3', texto: 'Reconversión vs. salida del excedente', peso: 0.3, opciones: [
-          'Recoloco todo el excedente (no reduzco)',
-          'Mayoría recolocación',
-          'Mezcla equilibrada',
-          'Principalmente ajuste de capacidad' ] },
-      ] },
-    { id: 'D', titulo: 'Nuevos servicios', desc: '¿Cuánta demanda nueva generas con servicios habilitados por IA?',
-      slider: 'nuevaDem', min: 0, max: 50, preguntas: [
-        { id: 'D1', texto: 'Madurez del roadmap de nuevos servicios IA', peso: 0.6, opciones: [
+    { id: 'D', titulo: 'Demanda neta', desc: 'Nuevos servicios menos internalización de clientes (efecto neto sobre la demanda).',
+      slider: 'demanda', min: 2.5, max: 3.5, preguntas: [
+        { id: 'D1', texto: 'Madurez del roadmap de nuevos servicios IA', peso: 0.45, opciones: [
           'Sin roadmap', 'Ideas exploratorias', 'Roadmap con pilotos/clientes', 'Servicios ya en mercado escalando' ] },
-        { id: 'D2', texto: 'Capacidad comercial para venderlos', peso: 0.4, opciones: [
+        { id: 'D2', texto: 'Capacidad comercial para venderlos', peso: 0.30, opciones: [
           'Limitada', 'En desarrollo', 'Equipo y pipeline dedicados', 'Motor comercial probado, cross-sell activo' ] },
+        { id: 'D3', texto: 'Riesgo de internalización de clientes (lo restamos)', peso: 0.25, opciones: [
+          'Alto: muchos clientes lo harán in-house',
+          'Medio-alto',
+          'Medio-bajo',
+          'Bajo: cartera muy especializada' ] },
       ] },
-    { id: 'E', titulo: 'Internalización de clientes', desc: 'Riesgo de perder demanda: ¿cuánto trabajo se llevan los clientes con su propia IA?',
-      slider: 'intern', min: 0, max: 30, preguntas: [
-        { id: 'E1', texto: 'Capacidad de tus clientes para hacerlo in-house con IA', peso: 0.5, opciones: [
-          'Baja', 'Algunos grandes clientes', 'Muchos con equipos/tech', 'Mayoría con capacidad real' ] },
-        { id: 'E2', texto: 'Grado de commoditización de tu cartera', peso: 0.5, opciones: [
-          'Muy especializado, difícil de internalizar',
-          'Mayoría especializado',
-          'Parte relevante commoditizable',
-          'Cartera muy commoditizable / volumen' ] },
+    { id: 'ROT', titulo: 'Rotación', desc: 'Rotación esperada de plantilla. Se materializa como máximo al 70% de lo previsto y baja si el mercado crece.',
+      slider: 'rotacion', min: 40, max: 70, preguntas: [
+        { id: 'R1', texto: 'Tensión del mercado laboral (oportunidades fuera)', peso: 0.6, opciones: [
+          'Mercado frío, pocas salidas', 'Moderado', 'Activo', 'Muy activo, fuga de talento' ] },
+        { id: 'R2', texto: 'Atractivo y retención de la firma', peso: 0.4, opciones: [
+          'Muy fuerte, retenemos bien', 'Fuerte', 'Media', 'Débil, cuesta retener' ] },
       ] },
-    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y los nuevos servicios).',
+    { id: 'REP', titulo: 'Reposición', desc: 'La decisión clave: qué parte de las bajas por rotación repones (una reestructuración reactiva).',
+      slider: 'reposicion', min: 0, max: 100, preguntas: [
+        { id: 'P1', texto: 'Política de reposición de bajas', peso: 0.6, opciones: [
+          'No repongo (dejo bajar la plantilla)',
+          'Repongo solo posiciones críticas',
+          'Repongo la mayoría',
+          'Repongo todas las bajas' ] },
+        { id: 'P2', texto: 'Presión de negocio para mantener capacidad', peso: 0.4, opciones: [
+          'Baja: priorizamos eficiencia', 'Media-baja', 'Media-alta', 'Alta: hay que sostener capacidad' ] },
+      ] },
+    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y la demanda neta).',
       tipo: 'gate', preguntas: [
         { id: 'F1', texto: 'Tecnología (licencias, plataformas, infraestructura, datos)', peso: 0.4, opciones: [
           'Sin presupuesto dedicado',
@@ -775,63 +773,58 @@ function aggregate(rows, nM) {
 /* ════════════════════════════════════════════════════════════════════════════
    CAPA 3 — INTERFAZ
    ════════════════════════════════════════════════════════════════════════════ */
+// Presets conservadores año-1 (valores de slider, en % o puntos)
 const PRESETS = {
-  nada:     { prodPwC: 0,  prodC: 5,  restruct: 0,  nuevaDem: 0,  intern: 0 },
-  moderado: { prodPwC: 10, prodC: 8,  restruct: 40, nuevaDem: 5,  intern: 3 },
-  agresivo: { prodPwC: 20, prodC: 5,  restruct: 80, nuevaDem: 10, intern: 0 },
+  nada:        { prodPwC: 0,   prodC: 3, demanda: 0, rotacion: 70, reposicion: 0 },
+  conservador: { prodPwC: 2.5, prodC: 3, demanda: 3, rotacion: 70, reposicion: 0 },
+  ambicioso:   { prodPwC: 3,   prodC: 4, demanda: 3.5, rotacion: 55, reposicion: 50 },
 };
+const SLIDERS = ['prodPwC', 'prodC', 'demanda', 'rotacion', 'reposicion'];
 
 const $ = id => document.getElementById(id);
 const M = v => (v / 1000);  // miles de € → millones de €
 const fmtM = v => (v >= 0 ? '' : '−') + '€' + Math.abs(M(v)).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + 'M';
 const fmtPct = v => (v * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + '%';
 const fmtInt = v => Math.round(v).toLocaleString('es-ES');
+const fmtPct1 = s => (+s).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + '%';
 
 function readInputs() {
   return {
     prodPwC: +$('prodPwC').value / 100,
     prodC: +$('prodC').value / 100,
-    restruct: +$('restruct').value / 100,
-    nuevaDem: +$('nuevaDem').value / 100,
-    internaliz: +$('intern').value / 100,
+    nuevaDem: +$('demanda').value / 100,   // demanda neta → nuevaDem (internaliz plegada a 0)
+    internaliz: 0,
+    rotacion: +$('rotacion').value / 100,  // [C22]
+    reposicion: +$('reposicion').value / 100, // [C39]
+    restruct: 0,                            // [C41] reestructuración proactiva (config/avanzado)
   };
 }
 
 function applyPreset(name) {
   const p = PRESETS[name];
-  $('prodPwC').value = p.prodPwC;
-  $('prodC').value = p.prodC;
-  $('restruct').value = p.restruct;
-  $('nuevaDem').value = p.nuevaDem;
-  $('intern').value = p.intern;
+  SLIDERS.forEach(s => $(s).value = p[s]);
   document.querySelectorAll('.preset-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.preset === name));
   onInput(true);
-}
-
-function toggleAdv() {
-  const f = $('advFields');
-  f.classList.toggle('open');
-  $('advToggle').textContent = (f.classList.contains('open') ? '▾' : '▸') + ' Supuestos avanzados';
 }
 
 let charts = {};
 
 function onInput(fromPreset = false) {
   // Etiquetas
-  $('v_prodPwC').textContent = $('prodPwC').value + '%';
-  $('v_prodC').textContent = $('prodC').value + '%';
-  $('v_restruct').textContent = $('restruct').value + '%';
-  $('v_nuevaDem').textContent = $('nuevaDem').value + '%';
-  $('v_intern').textContent = $('intern').value + '%';
+  $('v_prodPwC').textContent = fmtPct1($('prodPwC').value);
+  $('v_prodC').textContent = fmtPct1($('prodC').value);
+  $('v_demanda').textContent = fmtPct1($('demanda').value);
+  $('v_rotacion').textContent = $('rotacion').value + '%';
+  $('v_reposicion').textContent = $('reposicion').value + '%';
 
   if (!fromPreset) document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 
   const inputs = readInputs();
 
   const mine = runModel(inputs);
-  // "No hacer nada": tú a 0, pero el mercado sigue avanzando (mismo prodC e internalización)
-  const nada = runModel({ ...inputs, prodPwC: 0, restruct: 0, nuevaDem: 0 });
+  // "No hacer nada": tú a 0, pero el mercado y la rotación siguen su curso
+  const nada = runModel({ ...inputs, prodPwC: 0, nuevaDem: 0, reposicion: 0 });
   const pre = mine.margPre;
 
   // ── Coste de no actuar (margen anual perdido vs no hacer nada) ──
@@ -1127,57 +1120,36 @@ function renderQuiz() {
   const body = $('quizBody');
 
   if (quizStep < total) {
+    // INTRIGA: durante el cuestionario no se muestra ningún resultado.
     const crit = QC.criterios[quizStep];
     const a = quizAnswers[crit.id] || {};
     $('quizProgressBar').style.width = (quizStep / total * 100) + '%';
-    $('quizStepLabel').textContent = `Criterio ${quizStep + 1} de ${total}`;
+    $('quizStepLabel').textContent = `Pregunta ${quizStep + 1} de ${total}`;
 
     let h = `<div class="crit-title">${crit.titulo}</div><div class="crit-desc">${crit.desc}</div>`;
     for (const q of crit.preguntas) {
-      h += `<div class="q-block"><div class="q-text">${q.texto} <span class="q-weight">· peso ${q.peso}</span></div><div class="opts">`;
+      h += `<div class="q-block"><div class="q-text">${q.texto}</div><div class="opts">`;
       q.opciones.forEach((op, i) => {
         const sel = a[q.id] === i ? ' selected' : '';
         h += `<button class="opt${sel}" onclick="selectOpt('${crit.id}','${q.id}',${i})"><span class="opt-dot"></span><span>${op}</span></button>`;
       });
       h += `</div></div>`;
     }
-    // Resultado en vivo del criterio
-    if (crit.tipo === 'gate') {
-      const inten = critIntensity(crit), g = QC.gate.base + QC.gate.slope * inten;
-      h += `<div class="crit-result"><span class="cr-lbl">Nivel de inversión → multiplicador sobre productividad y nuevos servicios</span><span class="cr-val">×${g.toFixed(2)}</span></div>`;
-    } else {
-      h += `<div class="crit-result"><span class="cr-lbl">Resultado de este criterio</span><span class="cr-val">${Math.round(critValue(crit))}%</span></div>`;
-    }
     body.innerHTML = h;
     $('quizBack').disabled = quizStep === 0;
-    $('quizNext').textContent = (quizStep === total - 1) ? 'Ver resumen →' : 'Siguiente →';
+    $('quizNext').textContent = (quizStep === total - 1) ? 'Finalizar →' : 'Siguiente →';
   } else {
-    // Resumen final
+    // Pantalla final — sin números: el impacto se revela en el dashboard.
     $('quizProgressBar').style.width = '100%';
-    $('quizStepLabel').textContent = 'Resumen de tu escenario';
-    const g = gateMultiplier();
-    let h = '<div class="crit-title">Tu escenario calculado</div><div class="crit-desc">Estos son los valores que alimentarán el modelo. Podrás afinarlos con los sliders en el dashboard.</div><div class="summary-grid">';
-    for (const crit of QC.criterios) {
-      if (crit.tipo === 'gate') {
-        h += sumRow('Inversión en IA (gate)', g, `×${g.toFixed(2)}`, (g - QC.gate.base) / QC.gate.slope);
-      } else {
-        let v = critValue(crit);
-        const gated = QC.gate.escala.includes(crit.slider);
-        const vf = gated ? v * g : v;
-        const extra = gated ? ` <span style="color:var(--muted);font-weight:400">(antes del gate ${Math.round(v)}%)</span>` : '';
-        h += sumRow(crit.titulo, vf / crit.max, `${Math.round(vf)}%${extra}`, vf / crit.max);
-      }
-    }
-    h += '</div>';
-    h += `<div class="sum-note">El <strong>gate de inversión (×${g.toFixed(2)})</strong> escala la productividad propia y los nuevos servicios: sin inversión suficiente no se captura todo el retorno. La inversión todavía no resta margen (eso llegará en el V2 del motor).</div>`;
-    body.innerHTML = h;
+    $('quizStepLabel').textContent = 'Listo';
+    body.innerHTML =
+      '<div class="crit-title">Escenario configurado</div>' +
+      '<div class="crit-desc">Hemos traducido vuestras respuestas a los supuestos del modelo. ' +
+      'El impacto económico se revela en el dashboard — en el formato de seguimiento del comité.</div>' +
+      '<div class="quiz-ready">▶ Pulsa «Ver el Dashboard» para descubrir los resultados.</div>';
     $('quizBack').disabled = false;
     $('quizNext').textContent = 'Ver el Dashboard →';
   }
-}
-function sumRow(name, frac, valTxt) {
-  const w = Math.max(0, Math.min(100, frac * 100));
-  return `<div class="sum-row"><span class="sum-name">${name}</span><span class="sum-bar"><div style="width:${w}%"></div></span><span class="sum-val">${valTxt}</span></div>`;
 }
 
 function quizNext() {
@@ -1188,19 +1160,22 @@ function quizNext() {
 }
 function quizPrev() { if (quizStep > 0) { quizStep--; renderQuiz(); } }
 
-// Aplica un % al slider correspondiente (respetando su step/min/max)
-function setSlider(id, pct) {
+// Aplica un valor al slider correspondiente (respetando su step/min/max)
+function setSlider(id, val) {
   const el = $(id), step = +el.step || 1, min = +el.min, max = +el.max;
-  let v = Math.round(pct / step) * step;
+  let v = Math.round(val / step) * step;
   v = Math.max(min, Math.min(max, v));
   el.value = v;
 }
 function applyQuizToModel() {
   const g = gateMultiplier();
+  const B = QC.criterios.find(c => c.id === 'B');
+  const prodCIntensity = B ? critIntensity(B) : 0;   // 0..1
   for (const crit of QC.criterios) {
-    if (crit.tipo === 'gate') continue;
+    if (crit.tipo === 'gate' || !crit.slider) continue;
     let v = critValue(crit);
-    if (QC.gate.escala.includes(crit.slider)) v *= g;
+    if (QC.gate.escala.includes(crit.slider)) v *= g;          // gate de inversión
+    if (crit.slider === 'rotacion') v *= (1 - QC.rotacionDamp * prodCIntensity); // amortiguación de mercado
     setSlider(crit.slider, v);
   }
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
@@ -1357,7 +1332,7 @@ function resetConfig() { applyConfig(JSON.parse(JSON.stringify(DEFAULT_MODEL_CON
 function toggleDataPanel() { const p = $('dataPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
 
 // init: precarga un ejemplo (para "saltar") y arranca en el cuestionario
-applyPreset('agresivo');
+applyPreset('conservador');
 renderQuiz();
 </script>
 </body>
