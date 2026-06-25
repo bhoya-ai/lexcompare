@@ -814,8 +814,125 @@ function aggregate(rows, nM) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   CAPA 3 — INTERFAZ
+   EJERCICIO MENSUAL (v3) — el "juego": ver pasar los meses y reaccionar
+   --------------------------------------------------------------------------
+   El consejo decide al inicio (cuestionario/sliders). Cada mes se mensualiza
+   el resultado; las reacciones (palancas) tienen efecto DIFERIDO (lags). El
+   marcador es el margen acumulado; se muestran ingreso/tarifa/margen.
    ════════════════════════════════════════════════════════════════════════════ */
+const GAME_CONFIG = {
+  modoDesviacion: 'determinista',                 // 'determinista' | 'aleatorio'
+  // Retardo (meses) hasta que cada palanca surte pleno efecto. Editable.
+  lags: { reposicion: 1, restruct: 2, prodPwC: 3, nuevaDem: 4 },
+  // Palancas ajustables durante el ejercicio (las demás quedan fijas).
+  palancas: ['reposicion', 'restruct', 'prodPwC', 'nuevaDem'],
+  nMeses: 12,
+};
+
+const game = {
+  active: false,
+  month: 0,            // 0 = sin empezar; 1..12 = meses jugados (Jul..Jun)
+  baseInputs: null,    // policy inicial (del cuestionario/sliders)
+  timeline: [],        // decisiones: { month, lever, value(fracción) }
+  history: [],         // por mes (con reacciones): {ingMes,costMes,margMes,margAcum,tarifa,ingTot}
+  baseHistory: [],     // "sin reaccionar" (policy congelado)
+};
+
+// Valor efectivo de una palanca en el mes m, aplicando las decisiones con su lag (rampa lineal).
+function effectiveLever(lever, m, timeline, baseInputs) {
+  const lag = GAME_CONFIG.lags[lever] || 0;
+  const decs = timeline.filter(d => d.lever === lever).sort((a, b) => a.month - b.month);
+  let value = baseInputs[lever] || 0, from = value, to = value, start = -1, i = 0;
+  for (let t = 0; t <= m; t++) {
+    while (i < decs.length && decs[i].month === t) { from = value; to = decs[i].value; start = t; i++; }
+    if (start >= 0) { const prog = lag > 0 ? Math.min(1, (t - start) / lag) : 1; value = from + (to - from) * prog; }
+  }
+  return value;
+}
+
+// Inputs efectivos del modelo en el mes m (palancas con lag; resto fijo).
+function effectiveInputs(m, timeline, baseInputs) {
+  const inp = { ...baseInputs };
+  for (const lever of GAME_CONFIG.palancas) inp[lever] = effectiveLever(lever, m, timeline, baseInputs);
+  return inp;
+}
+
+// Resultado de un mes m (1..12) dado un timeline de decisiones.
+function runMonth(m, timeline, baseInputs, cfg = MODEL_CONFIG) {
+  const annual = runModel(effectiveInputs(m, timeline, baseInputs), cfg);
+  const per = cfg.reporte.periodificacion[m - 1];
+  const ingMes = annual.ingPost * per;
+  const costMes = annual.costPost / GAME_CONFIG.nMeses;
+  return { ingMes, costMes, margMes: ingMes - costMes, tarifa: annual.precioPost, ingTot: annual.ingPost, annual };
+}
+
+// Construye el reporte YTD del juego: ingreso mensual por UGE (puede variar mes a mes), acumulado.
+function buildReporteGame(monthlyIng, noise, upToMonth, cfg = MODEL_CONFIG) {
+  const R = cfg.reporte, per = R.periodificacion, bud = R.presupuestoTLS, nM = upToMonth;
+  const grupos = R.grupos.map(g => {
+    const uges = g.uges.map(u => {
+      let ytdI = 0; const ing = [], budA = [], pct = [];
+      let ytdB = 0;
+      for (let m = 0; m < nM; m++) {
+        ytdI += monthlyIng[m] * per[m] * u.peso * (1 + (noise[u.uge] ? noise[u.uge][m] : 0));
+        ytdB += u.peso * per[m] * bud;
+        ing.push(ytdI); budA.push(ytdB); pct.push(ytdI / ytdB);
+      }
+      return { uge: u.uge, ing, bud: budA, pct };
+    });
+    return { grupo: g.grupo, uges, ...aggregate(uges, nM) };
+  });
+  const all = { grupo: 'TLS ALL', ...aggregate(grupos, nM) };
+  return { grupos, all, meses: R.meses.slice(0, nM) };
+}
+
+// Desviación mensual por UGE según el modo (determinista reusa NOISE; aleatorio re-siembra).
+function gameNoise() {
+  if (GAME_CONFIG.modoDesviacion === 'determinista') return NOISE;
+  const amp = MODEL_CONFIG.reporte.ruidoMensual, n = {};
+  for (const g of MODEL_CONFIG.reporte.grupos)
+    for (const u of g.uges)
+      n[u.uge] = MODEL_CONFIG.reporte.periodificacion.map(() => (Math.random() - 0.5) * amp);
+  return n;
+}
+
+function startGame() {
+  game.active = true;
+  game.month = 0;
+  game.baseInputs = readInputs();
+  game.timeline = [];
+  game.history = [];
+  game.baseHistory = [];
+  game.noise = gameNoise();
+  advanceMonth();
+}
+function resetGame() { startGame(); }
+
+// Registra una decisión sobre una palanca desde el mes actual (valor en fracción 0..1).
+function setDecision(lever, valueFraccion) {
+  game.timeline = game.timeline.filter(d => !(d.lever === lever && d.month === game.month));
+  game.timeline.push({ month: game.month, lever, value: valueFraccion });
+}
+
+function advanceMonth() {
+  if (game.month >= GAME_CONFIG.nMeses) return;
+  game.month++;
+  // Recalcular TODO el historial hasta el mes actual (las reacciones afectan a meses futuros)
+  game.history = []; game.baseHistory = [];
+  let acum = 0, acumB = 0;
+  const frozen = [];  // baseline: sin reacciones
+  for (let m = 1; m <= game.month; m++) {
+    const r = runMonth(m, game.timeline, game.baseInputs);
+    acum += r.margMes;
+    game.history.push({ ...r, margAcum: acum });
+    const b = runMonth(m, frozen, game.baseInputs);
+    acumB += b.margMes;
+    game.baseHistory.push({ ...b, margAcum: acumB });
+  }
+  if (typeof renderGame === 'function') renderGame();
+}
+
+
 // Presets conservadores año-1 (valores de slider, en % o puntos)
 const PRESETS = {
   nada:        { prodPwC: 0,   prodC: 3, nuevaDem: 0,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0 },
