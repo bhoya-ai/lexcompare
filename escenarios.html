@@ -255,7 +255,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   <div class="logo">Escenarios<span>IA</span></div>
   <div class="badge">SERVICIOS PROFESIONALES</div>
   <div class="header-right">
-    <span style="font-size:11px;color:var(--muted)">v1.2</span>
+    <span style="font-size:11px;color:var(--muted)">v2.0</span>
     <button class="qbtn ghost" style="padding:7px 14px;font-size:13px" onclick="toggleDataPanel()">⚙ Datos</button>
   </div>
 </header>
@@ -408,6 +408,13 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <div class="legend-note" id="valueNote"></div>
         </div>
       </div>
+
+      <div class="card">
+        <h3>Cómo mueve la IA el punto de equilibrio</h3>
+        <div class="csub">Oferta y demanda del mercado (precio vs. cantidad) — antes y después de la IA</div>
+        <div class="chart-wrap" style="height:320px"><canvas id="chartEq"></canvas></div>
+        <div class="legend-note" id="eqNote"></div>
+      </div>
       </div><!-- /pane-dashboard -->
 
       <!-- PANE: REPORTE MENSUAL -->
@@ -437,8 +444,9 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <div class="chart-wrap" style="height:440px"><canvas id="chartPyramid"></canvas></div>
         </div>
         <div class="legend-note">
-          La reestructuración se concentra en las categorías con mayor factor de automatización
-          (base de la pirámide): a mayor factor IA, mayor reducción relativa de FTE.
+          Comparación FTE actual vs. tras rotación + IA. La <strong>rotación</strong> (atrición natural) reduce
+          la base de la pirámide; la <strong>reposición</strong> determina cuánto se recupera. Es la palanca
+          principal de plantilla en el año 1 conservador.
         </div>
       </div>
 
@@ -446,8 +454,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div class="pane" id="pane-verify">
         <div class="section-title">Verificación — datos de comprobación frente a tu hoja «Modelo»</div>
         <div class="legend-note" style="margin-top:0">
-          Pon los sliders con los mismos supuestos que tu Excel (productividad propia/mercado, reestructuración,
-          nuevos servicios, internalización) y compara estas cifras celda a celda. Valores en las mismas
+          Pon los sliders con los mismos supuestos que tu Excel (productividad propia/mercado, demanda neta,
+          rotación y reposición) y compara estas cifras celda a celda. Valores en las mismas
           unidades que la hoja (miles de €). La referencia [celda] es la posición en tu Excel.
         </div>
         <div class="card" style="padding:0; overflow:hidden;">
@@ -462,7 +470,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 </main>
 
 <footer>
-  Escenarios IA · <strong>v1.2</strong> (build 2026-06-22) · Motor económico portado del modelo financiero (hoja «Modelo»).
+  Escenarios IA · <strong>v2.0</strong> (build 2026-06-25) · Motor económico portado del modelo financiero v3 (rotación + reposición).
   Sustituye los supuestos vía «⚙ Datos» para conectar tus datos reales.
 </footer>
 
@@ -731,6 +739,8 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
     ocupPre, ocupPost, ocupDif: ocupPost - ocupPre,
     rotacionTotal, reposicionTotal,
     valorIA, valorClientes, valorFirma, valorStaff,
+    // Curvas oferta/demanda (para el gráfico de equilibrio): Q = A·P^E
+    curva: { aSupPre: G5 + G6, aSupPost: I5 + I6, aDemPre: G7, aDemPost: I7, Eo, Ed },
     // Pirámide: FTE actual (M) → FTE tras rotación+IA (Sf) por categoría
     piramide: st.map((r, i) => ({ cat: r.cat, pre: M[i], post: Sf[i], dif: Sf[i] - M[i] })),
   };
@@ -840,6 +850,7 @@ function onInput(fromPreset = false) {
   renderRevenueChart(mine.ingPre, nada.ingPost, mine.ingPost);
   renderMarginChart(pre, nada.margPost, mine.margPost);
   renderValueChart(mine);
+  renderEquilibrium(mine);
   renderReporte();
   renderPyramid(mine);
   renderVerify(mine);
@@ -977,13 +988,13 @@ function renderVerify(r) {
   h += param('Constante AoPwC', 'G5', n(C.constantes.AoPwC));
   h += param('Constante AoC', 'G6', n(C.constantes.AoC));
   h += param('Constante Ad', 'G7', n(C.constantes.Ad));
-  h += param('Coste total pre-IA', 'M17', n(C.costeTotalPre));
-  h += param('FTE total pre (suma plantilla)', 'L17', n(C.plantilla.reduce((s, p) => s + p.fte, 0)));
+  h += param('Horas estándar / FTE', 'C102', n(C.horasEstandar));
+  h += param('FTE total previo (suma M)', 'M18', n(C.plantilla.reduce((s, p) => s + p.fte, 0)));
   h += param('Escenario: productividad propia', 'C15', pc(inp.prodPwC));
   h += param('Escenario: productividad mercado', 'C16', pc(inp.prodC));
-  h += param('Escenario: internalización', 'C19', pc(inp.internaliz));
-  h += param('Escenario: nueva demanda', 'C20', pc(inp.nuevaDem));
-  h += param('Escenario: reestructuración', 'C22', pc(inp.restruct));
+  h += param('Escenario: demanda neta', 'C20−C19', pc(inp.nuevaDem - inp.internaliz));
+  h += param('Escenario: rotación realizada', 'C22', pc(inp.rotacion));
+  h += param('Escenario: reposición', 'C39', pc(inp.reposicion));
 
   h += sec('Modelo (Q = A · P^E)');
   h += row('Precio (P)', 'G4 / I4', n(r.precioPre, 4), n(r.precioPost, 4));
@@ -992,12 +1003,15 @@ function renderVerify(r) {
   h += row('Demanda (Q)', 'G10 / I10', n(r.qDemPre), n(r.qDemPost));
   h += row('Equilibrio (oferta − demanda)', 'G11 / I11', n(r.eqPre), n(r.eqPost));
   h += sec('Resultados');
-  h += row('Ingresos', 'F19 / G19', n(r.ingPre), n(r.ingPost));
-  h += row('Costes', 'F20 / G20', n(r.costPre), n(r.costPost));
-  h += row('Margen', 'F21 / G21', n(r.margPre), n(r.margPost));
-  h += row('% Margen', 'F22 / G22', pc(r.pctMargPre), pc(r.pctMargPost));
-  h += row('FTE', 'L17 / R35', n(r.ftePre), n(r.ftePost));
-  h += row('Cuota de mercado', 'F24 / G24', pc(r.sharePre), pc(r.sharePost));
+  h += row('Tamaño del mercado', 'F24 / G24', n(r.qDemPre * r.precioPre), n(r.qDemPost * r.precioPost));
+  h += row('Cuota de mercado', 'F25 / G25', pc(r.sharePre), pc(r.sharePost));
+  h += row('Ingresos', 'F26 / G26', n(r.ingPre), n(r.ingPost));
+  h += row('Costes', 'F27 / G27', n(r.costPre), n(r.costPost));
+  h += row('Margen', 'F28 / G28', n(r.margPre), n(r.margPost));
+  h += row('% Margen', 'F29 / G29', pc(r.pctMargPre), pc(r.pctMargPost));
+  h += row('FTE', 'P18 / S39', n(r.ftePre), n(r.ftePost));
+  h += row('Horas (miles)', 'F32 / G32', n(r.horasPre), n(r.horasPost));
+  h += row('Ocupación', 'X18 / —', pc(r.ocupPre), pc(r.ocupPost));
   h += sec('Reparto del valor de la IA  (Clientes + Firma + Staff = Valor total)');
   h += split('Valor total generado por la IA', 'G31', r.valorIA);
   h += split('→ Clientes', 'G28', r.valorClientes);
@@ -1081,6 +1095,50 @@ function renderValueChart(r) {
     'El <strong>valor total de la IA</strong> (eficiencia generada = más proyectos al precio original) se reparte entre ' +
     '<strong>firma</strong> (variación de margen), <strong>staff</strong> (variación de coste) y <strong>clientes</strong> ' +
     '(traslación vía precio). Los tres suman el total. Un valor negativo indica de quién sale ese valor (p. ej. staff negativo = ahorro de coste).';
+}
+
+// Gráfico de equilibrio oferta/demanda (precio vs cantidad), pre vs post-IA.
+function renderEquilibrium(r) {
+  const c = r.curva, exp = 1 / (c.Eo - c.Ed);
+  const Peq = (aS, aD) => (aD / aS) ** exp;            // precio de equilibrio
+  const Qd = (aD, p) => aD * p ** c.Ed, Qs = (aS, p) => aS * p ** c.Eo;
+  const pePre = Peq(c.aSupPre, c.aDemPre), pePost = Peq(c.aSupPost, c.aDemPost);
+  const pmin = Math.min(pePre, pePost) * 0.7, pmax = Math.max(pePre, pePost) * 1.35;
+  const Np = 36, kQ = 1000;                            // cantidades en miles
+  const supPre = [], demPre = [], supPost = [], demPost = [];
+  for (let i = 0; i <= Np; i++) {
+    const p = pmin + (pmax - pmin) * i / Np;
+    supPre.push({ x: Qs(c.aSupPre, p) / kQ, y: p });
+    demPre.push({ x: Qd(c.aDemPre, p) / kQ, y: p });
+    supPost.push({ x: Qs(c.aSupPost, p) / kQ, y: p });
+    demPost.push({ x: Qd(c.aDemPost, p) / kQ, y: p });
+  }
+  const eqPt = (aS, aD, col) => ({ x: Qs(aS, Peq(aS, aD)) / kQ, y: Peq(aS, aD) });
+  const line = (label, data, color, dash) => ({ label, data, borderColor: color, backgroundColor: color,
+    showLine: true, pointRadius: 0, borderWidth: 2, borderDash: dash || [], tension: 0.2, fill: false });
+  const pt = (label, p, color) => ({ label, data: [p], borderColor: color, backgroundColor: color, pointRadius: 6, pointStyle: 'rectRot', showLine: false });
+  const cfg = {
+    type: 'scatter',
+    data: { datasets: [
+      line('Oferta (hoy)', supPre, COL.pre), line('Demanda (hoy)', demPre, COL.pre, [6, 4]),
+      line('Oferta (tras IA)', supPost, COL.mine), line('Demanda (tras IA)', demPost, COL.mine, [6, 4]),
+      pt('Equilibrio hoy', eqPt(c.aSupPre, c.aDemPre), '#1f2329'),
+      pt('Equilibrio tras IA', eqPt(c.aSupPost, c.aDemPost), COL.good),
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#1f2329', font: { size: 11 }, boxWidth: 18 } } },
+      scales: {
+        x: { title: { display: true, text: 'Cantidad (miles de proyectos)', color: '#6b7280' }, ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+        y: { title: { display: true, text: 'Precio (€k / proyecto)', color: '#6b7280' }, ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+      },
+    },
+  };
+  upsert('chartEq', cfg);
+  const dirP = pePost < pePre ? 'baja' : 'sube';
+  $('eqNote').innerHTML =
+    `La IA desplaza la <strong>oferta</strong> (más capacidad) y la <strong>demanda</strong> (nuevos servicios). ` +
+    `El nuevo equilibrio mueve el precio de <strong>€${pePre.toFixed(2)}k</strong> a <strong>€${pePost.toFixed(2)}k</strong> (${dirP}).`;
 }
 
 function upsert(id, cfg) {
