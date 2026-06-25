@@ -232,10 +232,10 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .reporte-table thead tr.months th { text-align: center; border-left: 1px solid var(--border); font-size: 12px; color: var(--text); }
     .reporte-table .col-name { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 220px; }
     .reporte-table thead .col-name { z-index: 3; background: var(--surface2); }
-    .reporte-table tr.grp td { font-weight: 700; background: rgba(226,113,29,0.07); }
-    .reporte-table tr.grp .col-name { background: #efe7df; }
-    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: rgba(226,113,29,0.15); border-top: 2px solid var(--accent); }
-    .reporte-table tr.all .col-name { background: #ead9c8; }
+    .reporte-table tr.grp td { font-weight: 700; background: #f1f1f3; }
+    .reporte-table tr.grp .col-name { background: #e7e7ea; }
+    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: #e7e7ea; border-top: 2px solid #1f2329; border-bottom: 2px solid #1f2329; }
+    .reporte-table tr.all .col-name { background: #dedee2; }
     .reporte-table tr.uge .col-name { padding-left: 26px; color: var(--muted); font-weight: 400; }
     .reporte-table td.mstart { border-left: 1px solid var(--border); }
     .verify-table { width: 100%; }
@@ -349,11 +349,20 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
       <div class="field">
         <div class="field-head">
-          <span class="field-label">Demanda neta</span>
-          <span class="field-val" id="v_demanda">3%</span>
+          <span class="field-label">Nuevos servicios</span>
+          <span class="field-val" id="v_nuevaDem">3%</span>
         </div>
-        <input type="range" id="demanda" min="-10" max="30" step="0.5" value="3" oninput="onInput()">
-        <div class="field-desc">Nuevos servicios menos internalización de clientes (neto). [C20−C19]</div>
+        <input type="range" id="nuevaDem" min="0" max="30" step="0.5" value="3" oninput="onInput()">
+        <div class="field-desc">Demanda adicional que generas con servicios nuevos habilitados por IA. [C20]</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Internalización de clientes</span>
+          <span class="field-val" id="v_intern">3%</span>
+        </div>
+        <input type="range" id="intern" min="0" max="30" step="0.5" value="3" oninput="onInput()">
+        <div class="field-desc">Demanda que pierdes porque los clientes la hacen con su propia IA. [C19]</div>
       </div>
 
       <div class="field">
@@ -371,7 +380,16 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <span class="field-val" id="v_reposicion">0%</span>
         </div>
         <input type="range" id="reposicion" min="0" max="100" step="5" value="0" oninput="onInput()">
-        <div class="field-desc">Qué parte de las bajas por rotación se repone. La decisión clave de plantilla. [C39]</div>
+        <div class="field-desc">Qué parte de las bajas por rotación se repone. [C39]</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Reestructuración inicial (IA)</span>
+          <span class="field-val" id="v_restruct">0%</span>
+        </div>
+        <input type="range" id="restruct" min="0" max="100" step="5" value="0" oninput="onInput()">
+        <div class="field-desc">Ajuste proactivo del excedente de plantilla que genera la productividad IA. [C41]</div>
       </div>
     </div>
 
@@ -566,7 +584,7 @@ let MODEL_CONFIG = {
    ════════════════════════════════════════════════════════════════════════════ */
 const QUESTIONNAIRE_CONFIG = {
   // gate de inversión: multiplicador = base + slope × intensidadInversión
-  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'demanda'] },
+  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'nuevaDem'] },
   // La rotación realizada se amortigua con la productividad del mercado:
   // rotacion = base × (1 − dampen × intensidad(prodC)).
   rotacionDamp: 0.4,
@@ -598,17 +616,22 @@ const QUESTIONNAIRE_CONFIG = {
         { id: 'B2', texto: 'Presión de nuevos entrantes (legaltech, Big4-tech, in-house de clientes)', peso: 0.4, opciones: [
           'Baja', 'Moderada', 'Alta', 'Muy alta, ya capturan cuota' ] },
       ] },
-    { id: 'D', titulo: 'Demanda neta', desc: 'Nuevos servicios menos internalización de clientes (efecto neto sobre la demanda).',
-      slider: 'demanda', min: 2.5, max: 3.5, preguntas: [
-        { id: 'D1', texto: 'Madurez del roadmap de nuevos servicios IA', peso: 0.45, opciones: [
+    { id: 'D', titulo: 'Nuevos servicios', desc: 'Demanda adicional que generas con servicios habilitados por IA.',
+      slider: 'nuevaDem', min: 2.5, max: 3.5, preguntas: [
+        { id: 'D1', texto: 'Madurez del roadmap de nuevos servicios IA', peso: 0.6, opciones: [
           'Sin roadmap', 'Ideas exploratorias', 'Roadmap con pilotos/clientes', 'Servicios ya en mercado escalando' ] },
-        { id: 'D2', texto: 'Capacidad comercial para venderlos', peso: 0.30, opciones: [
+        { id: 'D2', texto: 'Capacidad comercial para venderlos', peso: 0.4, opciones: [
           'Limitada', 'En desarrollo', 'Equipo y pipeline dedicados', 'Motor comercial probado, cross-sell activo' ] },
-        { id: 'D3', texto: 'Riesgo de internalización de clientes (lo restamos)', peso: 0.25, opciones: [
-          'Alto: muchos clientes lo harán in-house',
-          'Medio-alto',
-          'Medio-bajo',
-          'Bajo: cartera muy especializada' ] },
+      ] },
+    { id: 'E', titulo: 'Internalización de clientes', desc: 'Demanda que pierdes porque los clientes la hacen con su propia IA.',
+      slider: 'intern', min: 2.5, max: 3.5, preguntas: [
+        { id: 'E1', texto: 'Capacidad de tus clientes para hacerlo in-house con IA', peso: 0.5, opciones: [
+          'Baja', 'Algunos grandes clientes', 'Muchos con equipos/tech', 'Mayoría con capacidad real' ] },
+        { id: 'E2', texto: 'Grado de commoditización de tu cartera', peso: 0.5, opciones: [
+          'Muy especializado, difícil de internalizar',
+          'Mayoría especializado',
+          'Parte relevante commoditizable',
+          'Cartera muy commoditizable / volumen' ] },
       ] },
     { id: 'ROT', titulo: 'Rotación', desc: 'Rotación esperada de plantilla. Se materializa como máximo al 70% de lo previsto y baja si el mercado crece.',
       slider: 'rotacion', min: 40, max: 70, preguntas: [
@@ -627,7 +650,14 @@ const QUESTIONNAIRE_CONFIG = {
         { id: 'P2', texto: 'Presión de negocio para mantener capacidad', peso: 0.4, opciones: [
           'Baja: priorizamos eficiencia', 'Media-baja', 'Media-alta', 'Alta: hay que sostener capacidad' ] },
       ] },
-    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y la demanda neta).',
+    { id: 'RESTR', titulo: 'Reestructuración inicial', desc: 'Ajuste proactivo del excedente de plantilla que genera la productividad de la IA (además de la rotación).',
+      slider: 'restruct', min: 0, max: 50, preguntas: [
+        { id: 'S1', texto: 'Mandato para ajustar capacidad por la eficiencia IA', peso: 0.6, opciones: [
+          'No se contempla', 'Solo congelación selectiva', 'Ajuste parcial del excedente', 'Ajuste activo alineado a la eficiencia' ] },
+        { id: 'S2', texto: 'Velocidad del ajuste', peso: 0.4, opciones: [
+          'No aplica', 'Muy gradual (>3 años)', 'Medio (1–3 años)', 'Rápido (<1 año)' ] },
+      ] },
+    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y los nuevos servicios).',
       tipo: 'gate', preguntas: [
         { id: 'F1', texto: 'Tecnología (licencias, plataformas, infraestructura, datos)', peso: 0.4, opciones: [
           'Sin presupuesto dedicado',
@@ -718,7 +748,7 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
   const sharePre = G8 / G10, sharePost = I8 / I10;
   const ftePre = P18, ftePost = S39;
   const horasPre = T18 / 1000, horasPost = U39 / 1000;
-  const ocupPre = T18 / (M18 * C102), ocupPost = U39 / (S39 * C102);
+  const ocupPre = T18 / (P18 * C102), ocupPost = U39 / (S39 * C102);  // [X18] corregido: P18 (post rotación), no M18
   const valorIA = (I8 - G8) * G4;          // [G31] valor generado por IA
   const valorClientes = (G4 - I4) * I8;    // [G28] a clientes (precio)
   const valorFirma = margPost - margPre;   // [G29] equities (Δ margen)
@@ -785,11 +815,11 @@ function aggregate(rows, nM) {
    ════════════════════════════════════════════════════════════════════════════ */
 // Presets conservadores año-1 (valores de slider, en % o puntos)
 const PRESETS = {
-  nada:        { prodPwC: 0,   prodC: 3, demanda: 0, rotacion: 70, reposicion: 0 },
-  conservador: { prodPwC: 2.5, prodC: 3, demanda: 3, rotacion: 70, reposicion: 0 },
-  ambicioso:   { prodPwC: 3,   prodC: 4, demanda: 3.5, rotacion: 55, reposicion: 50 },
+  nada:        { prodPwC: 0,   prodC: 3, nuevaDem: 0,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0 },
+  conservador: { prodPwC: 2.5, prodC: 3, nuevaDem: 3,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0 },
+  ambicioso:   { prodPwC: 3,   prodC: 4, nuevaDem: 3.5, intern: 2.5, rotacion: 55, reposicion: 50, restruct: 30 },
 };
-const SLIDERS = ['prodPwC', 'prodC', 'demanda', 'rotacion', 'reposicion'];
+const SLIDERS = ['prodPwC', 'prodC', 'nuevaDem', 'intern', 'rotacion', 'reposicion', 'restruct'];
 
 const $ = id => document.getElementById(id);
 const M = v => (v / 1000);  // miles de € → millones de €
@@ -802,11 +832,11 @@ function readInputs() {
   return {
     prodPwC: +$('prodPwC').value / 100,
     prodC: +$('prodC').value / 100,
-    nuevaDem: +$('demanda').value / 100,   // demanda neta → nuevaDem (internaliz plegada a 0)
-    internaliz: 0,
-    rotacion: +$('rotacion').value / 100,  // [C22]
+    nuevaDem: +$('nuevaDem').value / 100,   // [C20] nuevos servicios
+    internaliz: +$('intern').value / 100,   // [C19] internalización
+    rotacion: +$('rotacion').value / 100,   // [C22]
     reposicion: +$('reposicion').value / 100, // [C39]
-    restruct: 0,                            // [C41] reestructuración proactiva (config/avanzado)
+    restruct: +$('restruct').value / 100,   // [C41] reestructuración proactiva
   };
 }
 
@@ -824,9 +854,11 @@ function onInput(fromPreset = false) {
   // Etiquetas
   $('v_prodPwC').textContent = fmtPct1($('prodPwC').value);
   $('v_prodC').textContent = fmtPct1($('prodC').value);
-  $('v_demanda').textContent = fmtPct1($('demanda').value);
+  $('v_nuevaDem').textContent = fmtPct1($('nuevaDem').value);
+  $('v_intern').textContent = fmtPct1($('intern').value);
   $('v_rotacion').textContent = $('rotacion').value + '%';
   $('v_reposicion').textContent = $('reposicion').value + '%';
+  $('v_restruct').textContent = $('restruct').value + '%';
 
   if (!fromPreset) document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 
@@ -834,7 +866,7 @@ function onInput(fromPreset = false) {
 
   const mine = runModel(inputs);
   // "No hacer nada": tú a 0, pero el mercado y la rotación siguen su curso
-  const nada = runModel({ ...inputs, prodPwC: 0, nuevaDem: 0, reposicion: 0 });
+  const nada = runModel({ ...inputs, prodPwC: 0, nuevaDem: 0, reposicion: 0, restruct: 0 });
   const pre = mine.margPre;
 
   // ── Coste de no actuar (margen anual perdido vs no hacer nada) ──
@@ -888,10 +920,11 @@ function setReporteScenario(sc) {
 }
 
 function pctCell(p) {
-  const cls = p >= 1 ? 'pct-good' : (p >= 0.95 ? 'pct-warn' : 'pct-bad');
-  return `<td class="${cls}">${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 0 })}%</td>`;
+  const cls = p >= 1 ? '' : (p >= 0.95 ? 'pct-warn' : 'pct-bad');  // sobrio: solo destaca bajo presupuesto
+  return `<td class="${cls}">${(p * 100).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>`;
 }
-function numCell(v, cls = '') { return `<td class="${cls}">${M(v).toLocaleString('es-ES', { maximumFractionDigits: 1 })}</td>`; }
+// Cifras en miles de € (#,##0), como el reporte financiero
+function numCell(v, cls = '') { return `<td class="${cls}">${v.toLocaleString('es-ES', { maximumFractionDigits: 0 })}</td>`; }
 
 function renderReporte() {
   if (!current.mine) return;
@@ -927,7 +960,7 @@ function renderReporte() {
   const fin = rep.all.pct[nM - 1];
   const lbl = { mine: 'tu escenario', nada: 'no hacer nada', hoy: 'la situación de hoy (pre-IA)' }[reporteScenario];
   $('reporteNote').innerHTML =
-    `Cifras en M€. Presupuesto FY26 fijo (€${M(MODEL_CONFIG.reporte.presupuestoTLS).toLocaleString('es-ES',{maximumFractionDigits:1})}M). ` +
+    `Cifras en miles de € (Ingreso Neto YTD · Presupuesto · % Cumplimiento). Presupuesto FY26 fijo (${MODEL_CONFIG.reporte.presupuestoTLS.toLocaleString('es-ES')}). ` +
     `Con <strong>${lbl}</strong>, el cumplimiento de cierre (Junio) es <strong>${(fin*100).toLocaleString('es-ES',{maximumFractionDigits:0})}%</strong> del presupuesto. ` +
     `Cambia de escenario arriba para ver el contraste en el mismo formato que recibe el comité.`;
 }
@@ -992,9 +1025,11 @@ function renderVerify(r) {
   h += param('FTE total previo (suma M)', 'M18', n(C.plantilla.reduce((s, p) => s + p.fte, 0)));
   h += param('Escenario: productividad propia', 'C15', pc(inp.prodPwC));
   h += param('Escenario: productividad mercado', 'C16', pc(inp.prodC));
-  h += param('Escenario: demanda neta', 'C20−C19', pc(inp.nuevaDem - inp.internaliz));
+  h += param('Escenario: nuevos servicios', 'C20', pc(inp.nuevaDem));
+  h += param('Escenario: internalización', 'C19', pc(inp.internaliz));
   h += param('Escenario: rotación realizada', 'C22', pc(inp.rotacion));
   h += param('Escenario: reposición', 'C39', pc(inp.reposicion));
+  h += param('Escenario: reestructuración IA', 'C41', pc(inp.restruct));
 
   h += sec('Modelo (Q = A · P^E)');
   h += row('Precio (P)', 'G4 / I4', n(r.precioPre, 4), n(r.precioPost, 4));
@@ -1037,13 +1072,18 @@ function renderKPIs(r) {
     const arrow = v >= 0 ? '▲' : '▼';
     return `<span class="kpi-delta ${cls}">${arrow} ${fmtInt(Math.abs(v))} FTE</span>`;
   };
+  const deltaH = (v) => `<span class="kpi-delta ${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${fmtInt(Math.abs(v))}k h</span>`;
+  const netRot = r.rotacionTotal + r.reposicionTotal;  // bajas netas por rotación (FTE)
   $('kpiGrid').innerHTML = `
     <div class="kpi"><span class="kpi-lbl">Margen</span><span class="kpi-val">${fmtM(r.margPost)}</span>${delta(r.margDif)}</div>
     <div class="kpi"><span class="kpi-lbl">% Margen</span><span class="kpi-val">${fmtPct(r.pctMargPost)}</span>${deltaPct(r.pctMargPost - r.pctMargPre)}</div>
     <div class="kpi"><span class="kpi-lbl">Ingresos</span><span class="kpi-val">${fmtM(r.ingPost)}</span>${delta(r.ingDif)}</div>
-    <div class="kpi"><span class="kpi-lbl">Plantilla</span><span class="kpi-val">${fmtInt(r.ftePost)}</span>${deltaInt(r.fteDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Plantilla (FTE)</span><span class="kpi-val">${fmtInt(r.ftePost)}</span>${deltaInt(r.fteDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Rotación (bajas netas)</span><span class="kpi-val">${fmtInt(netRot)}</span><span class="kpi-delta">FTE</span></div>
+    <div class="kpi"><span class="kpi-lbl">Ocupación</span><span class="kpi-val">${fmtPct(r.ocupPost)}</span>${deltaPct(r.ocupDif)}</div>
+    <div class="kpi"><span class="kpi-lbl">Tarifa / proyecto</span><span class="kpi-val">€${r.precioPost.toLocaleString('es-ES',{maximumFractionDigits:2})}k</span>${deltaPct((r.precioPost-r.precioPre)/r.precioPre)}</div>
+    <div class="kpi"><span class="kpi-lbl">Horas (miles)</span><span class="kpi-val">${fmtInt(r.horasPost)}</span>${deltaH(r.horasDif)}</div>
     <div class="kpi"><span class="kpi-lbl">Cuota de mercado</span><span class="kpi-val">${fmtPct(r.sharePost)}</span>${deltaPct(r.shareDif)}</div>
-    <div class="kpi"><span class="kpi-lbl">Precio / proyecto</span><span class="kpi-val">€${r.precioPost.toLocaleString('es-ES',{maximumFractionDigits:2})}k</span>${deltaPct((r.precioPost-r.precioPre)/r.precioPre)}</div>
   `;
 }
 
