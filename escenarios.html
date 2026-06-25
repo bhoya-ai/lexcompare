@@ -226,18 +226,21 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .sc-btn:not(.active):hover { color: var(--text); }
     .detail-check { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .reporte-scroll { overflow-x: auto; max-height: 560px; overflow-y: auto; }
-    .reporte-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
-    .reporte-table th, .reporte-table td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border); }
-    .reporte-table thead th { position: sticky; top: 0; background: var(--surface2); z-index: 2; color: var(--muted); font-weight: 600; }
-    .reporte-table thead tr.months th { text-align: center; border-left: 1px solid var(--border); font-size: 12px; color: var(--text); }
-    .reporte-table .col-name { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 220px; }
-    .reporte-table thead .col-name { z-index: 3; background: var(--surface2); }
-    .reporte-table tr.grp td { font-weight: 700; background: #f1f1f3; }
-    .reporte-table tr.grp .col-name { background: #e7e7ea; }
-    .reporte-table tr.all td { font-weight: 800; font-size: 12px; background: #e7e7ea; border-top: 2px solid #1f2329; border-bottom: 2px solid #1f2329; }
-    .reporte-table tr.all .col-name { background: #dedee2; }
-    .reporte-table tr.uge .col-name { padding-left: 26px; color: var(--muted); font-weight: 400; }
-    .reporte-table td.mstart { border-left: 1px solid var(--border); }
+    /* Reporte estilo informe financiero (formato comité / «mail de Geni») */
+    .reporte-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; background: #fff; font-variant-numeric: tabular-nums; }
+    .reporte-table th, .reporte-table td { padding: 4px 12px; text-align: right; }
+    .reporte-table thead th { position: sticky; top: 0; background: #fff; z-index: 2; color: #1f2329; font-weight: 700; border-bottom: 1.5px solid #1f2329; }
+    .reporte-table thead tr.months th { text-align: center; border-left: 1px solid #c9c9cf; font-size: 12px; font-style: italic; border-bottom: none; }
+    .reporte-table thead tr:last-child th { font-size: 10px; white-space: normal; vertical-align: bottom; line-height: 1.25; }
+    .reporte-table .col-name { text-align: left; position: sticky; left: 0; background: #fff; z-index: 1; min-width: 240px; }
+    .reporte-table thead .col-name { z-index: 3; }
+    .reporte-table tr.grp td, .reporte-table tr.grp .col-name { font-weight: 700; font-style: italic; }
+    .reporte-table tr.all td, .reporte-table tr.all .col-name { font-weight: 800; border-top: 1.5px solid #1f2329; border-bottom: 1.5px solid #1f2329; }
+    .reporte-table tr.uge .col-name { padding-left: 28px; font-style: italic; }
+    .reporte-table tr.spacer td { padding: 0; height: 7px; border: none; }
+    .reporte-table td.mstart { border-left: 1px solid #c9c9cf; }
+    .reporte-table td.pctc { text-align: right; }
+    .sem { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.12); }
     .verify-table { width: 100%; }
     .verify-table .col-name { min-width: 280px; white-space: normal; }
     .verify-table .vcell { color: var(--muted); font-size: 10px; text-align: left; }
@@ -920,8 +923,9 @@ function setReporteScenario(sc) {
 }
 
 function pctCell(p) {
-  const cls = p >= 1 ? '' : (p >= 0.95 ? 'pct-warn' : 'pct-bad');  // sobrio: solo destaca bajo presupuesto
-  return `<td class="${cls}">${(p * 100).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>`;
+  // Semáforo (icono Excel): verde ≥100%, ámbar 95–100%, rojo <95%
+  const col = p >= 1 ? '#2e8b57' : (p >= 0.95 ? '#e0a800' : '#c0392b');
+  return `<td class="pctc"><span class="sem" style="background:${col}"></span>${(p * 100).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>`;
 }
 // Cifras en miles de € (#,##0), como el reporte financiero
 function numCell(v, cls = '') { return `<td class="${cls}">${v.toLocaleString('es-ES', { maximumFractionDigits: 0 })}</td>`; }
@@ -936,8 +940,8 @@ function renderReporte() {
   // Cabeceras
   let head = '<thead><tr class="months"><th class="col-name"></th>';
   for (const mes of rep.meses) head += `<th colspan="3">${mes}</th>`;
-  head += '</tr><tr><th class="col-name">UGE / GRUPO DE PRODUCCIÓN</th>';
-  for (let m = 0; m < nM; m++) head += '<th>Ing. YTD</th><th>Ppto.</th><th>% Cumpl.</th>';
+  head += '</tr><tr><th class="col-name">UGE/GRUPO DE PRODUCCIÓN</th>';
+  for (let m = 0; m < nM; m++) head += '<th>Ingreso Neto YTD</th><th>Presupuesto Producción - FY26</th><th>% Cumplimiento</th>';
   head += '</tr></thead>';
 
   const rowHtml = (r, cls) => {
@@ -947,13 +951,15 @@ function renderReporte() {
     }
     return h + '</tr>';
   };
+  const spacer = `<tr class="spacer"><td colspan="${1 + nM * 3}"></td></tr>`;
 
   let body = '<tbody>';
-  for (const g of rep.grupos) {
+  rep.grupos.forEach((g, i) => {
+    if (i > 0) body += spacer;
     body += rowHtml(g, 'grp');
     if (detail) for (const u of g.uges) body += rowHtml(u, 'uge');
-  }
-  body += rowHtml(rep.all, 'all');
+  });
+  body += spacer + rowHtml(rep.all, 'all');
   body += '</tbody>';
 
   $('reporteTable').innerHTML = head + body;
