@@ -157,6 +157,23 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .chart-wrap.chart-sm { height: 220px; }
     .dash-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 
+    /* ── MODO EJERCICIO ── */
+    #gameView { padding: 24px 32px; }
+    .game-wrap { max-width: 1500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    .game-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; }
+    .game-title { font-size: 16px; font-weight: 700; }
+    .game-month { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .game-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .game-grid { grid-template-columns: 1fr; } }
+    .lever { margin-bottom: 16px; }
+    .lever-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .lever-name { font-size: 13px; font-weight: 600; }
+    .lever-val { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .lever-eff { font-size: 11px; color: var(--muted); margin-top: 5px; }
+    .lever-lag { font-size: 10px; color: var(--muted); font-style: italic; }
+    .kpi-acc .kpi-val { color: var(--accent); }
+
     /* ── CUESTIONARIO ── */
     #quiz { padding: 40px 24px; display: flex; justify-content: center; }
     .quiz-wrap { width: 100%; max-width: 760px; }
@@ -258,7 +275,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   <div class="logo">Escenarios<span>IA</span></div>
   <div class="badge">SERVICIOS PROFESIONALES</div>
   <div class="header-right">
-    <span style="font-size:11px;color:var(--muted)">v2.0</span>
+    <span style="font-size:11px;color:var(--muted)">v3.0</span>
     <button class="qbtn ghost" style="padding:7px 14px;font-size:13px" onclick="toggleDataPanel()">⚙ Datos</button>
   </div>
 </header>
@@ -310,7 +327,10 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       capturan las eficiencias de la IA y tú no, el valor se traslada a los clientes vía precio y
       pierdes margen y cuota. Ajusta los supuestos y compara <strong>tu escenario</strong> frente a
       <strong>no hacer nada</strong>.</p>
-      <button class="qbtn ghost" style="margin-top:14px" onclick="openQuiz()">↩ Editar respuestas del cuestionario</button>
+      <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="qbtn primary" onclick="showGameView()">◀ Volver al ejercicio</button>
+        <button class="qbtn ghost" onclick="openQuiz()">↩ Editar respuestas del cuestionario</button>
+      </div>
     </div>
     <div class="hero-cost">
       <div class="lbl">Coste de no actuar</div>
@@ -490,8 +510,47 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
 </main>
 
+<!-- ══ MODO EJERCICIO (juego mensual) ══ -->
+<section id="gameView" style="display:none">
+  <div class="game-wrap">
+    <div class="game-head">
+      <div>
+        <div class="game-title">Ejercicio FY26 — el consejo decide y vemos pasar los meses</div>
+        <div class="game-month">Cierre a <strong id="gMonth">—</strong> · mes <span id="gMonthN">0</span> de 12</div>
+      </div>
+      <div class="game-actions">
+        <button class="qbtn primary" id="gAdvance" onclick="advanceMonth()">Avanzar mes ▶</button>
+        <button class="qbtn ghost" onclick="resetGame()">↺ Reiniciar</button>
+        <button class="qbtn ghost" onclick="openQuiz()">Editar decisión inicial</button>
+        <button class="qbtn ghost" onclick="showAppView()">Ver resultado anual ▸</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid" id="gScore"></div>
+
+    <div class="game-grid">
+      <div class="card">
+        <h3>Reacciona: ajusta tus palancas</h3>
+        <div class="csub">Los cambios surten efecto con retardo (no este mismo mes).</div>
+        <div id="gLevers"></div>
+      </div>
+      <div class="card">
+        <h3>Margen acumulado — tu gestión vs. no reaccionar</h3>
+        <div class="csub">El marcador del ejercicio (miles de €).</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="chartGame"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">Seguimiento YTD — formato comité</div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="reporte-scroll"><table class="reporte-table" id="gReporte"></table></div>
+    </div>
+    <div class="legend-note" id="gNote"></div>
+  </div>
+</section>
+
 <footer>
-  Escenarios IA · <strong>v2.0</strong> (build 2026-06-25) · Motor económico portado del modelo financiero v3 (rotación + reposición).
+  Escenarios IA · <strong>v3.0</strong> (build 2026-06-25) · Ejercicio mensual jugable (decisiones con efecto diferido) sobre el modelo v3.
   Sustituye los supuestos vía «⚙ Datos» para conectar tus datos reales.
 </footer>
 
@@ -912,24 +971,26 @@ function resetGame() { startGame(); }
 function setDecision(lever, valueFraccion) {
   game.timeline = game.timeline.filter(d => !(d.lever === lever && d.month === game.month));
   game.timeline.push({ month: game.month, lever, value: valueFraccion });
+  recomputeHistory();
+}
+
+function recomputeHistory() {
+  game.history = []; game.baseHistory = [];
+  let acum = 0, acumB = 0; const frozen = [];   // baseline: sin reacciones
+  for (let m = 1; m <= game.month; m++) {
+    const r = runMonth(m, game.timeline, game.baseInputs);
+    acum += r.margMes; game.history.push({ ...r, margAcum: acum });
+    const b = runMonth(m, frozen, game.baseInputs);
+    acumB += b.margMes; game.baseHistory.push({ ...b, margAcum: acumB });
+  }
+  if (typeof renderGameOutputs === 'function') renderGameOutputs();
 }
 
 function advanceMonth() {
   if (game.month >= GAME_CONFIG.nMeses) return;
   game.month++;
-  // Recalcular TODO el historial hasta el mes actual (las reacciones afectan a meses futuros)
-  game.history = []; game.baseHistory = [];
-  let acum = 0, acumB = 0;
-  const frozen = [];  // baseline: sin reacciones
-  for (let m = 1; m <= game.month; m++) {
-    const r = runMonth(m, game.timeline, game.baseInputs);
-    acum += r.margMes;
-    game.history.push({ ...r, margAcum: acum });
-    const b = runMonth(m, frozen, game.baseInputs);
-    acumB += b.margMes;
-    game.baseHistory.push({ ...b, margAcum: acumB });
-  }
-  if (typeof renderGame === 'function') renderGame();
+  recomputeHistory();
+  if (typeof renderLevers === 'function') renderLevers();   // refresca valores efectivos
 }
 
 
@@ -1364,12 +1425,12 @@ function renderQuiz() {
     $('quizProgressBar').style.width = '100%';
     $('quizStepLabel').textContent = 'Listo';
     body.innerHTML =
-      '<div class="crit-title">Escenario configurado</div>' +
+      '<div class="crit-title">Decisión de inicio de ejercicio tomada</div>' +
       '<div class="crit-desc">Hemos traducido vuestras respuestas a los supuestos del modelo. ' +
-      'El impacto económico se revela en el dashboard — en el formato de seguimiento del comité.</div>' +
-      '<div class="quiz-ready">▶ Pulsa «Ver el Dashboard» para descubrir los resultados.</div>';
+      'Ahora empieza el ejercicio: veréis pasar los meses y podréis reaccionar. El resultado se descubre mes a mes.</div>' +
+      '<div class="quiz-ready">▶ Pulsa «Iniciar ejercicio» y que empiece el juego.</div>';
     $('quizBack').disabled = false;
-    $('quizNext').textContent = 'Ver el Dashboard →';
+    $('quizNext').textContent = 'Iniciar ejercicio ▶';
   }
 }
 
@@ -1402,20 +1463,114 @@ function applyQuizToModel() {
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
   onInput();
 }
-function showAppView() {
-  $('quiz').style.display = 'none';
-  $('appView').style.display = 'flex';
+function hideAll() { $('quiz').style.display = 'none'; $('appView').style.display = 'none'; $('gameView').style.display = 'none'; }
+function showAppView() {   // dashboard anual (reveal bajo demanda — spoiler)
+  hideAll(); $('appView').style.display = 'flex';
   Object.values(charts).forEach(c => c.resize());
   window.scrollTo({ top: 0 });
 }
-function finishQuiz() { applyQuizToModel(); showAppView(); }
-function skipQuiz() { showAppView(); }   // mantiene el preset de ejemplo ya cargado
+function showGameView() {  // el ejercicio mensual (el reveal por defecto)
+  hideAll(); $('gameView').style.display = 'block';
+  Object.values(charts).forEach(c => c.resize());
+  window.scrollTo({ top: 0 });
+}
+// El reveal tras el cuestionario es el JUEGO (intriga: no se muestra el anual completo).
+function finishQuiz() { applyQuizToModel(); startGame(); showGameView(); }
+function skipQuiz() { startGame(); showGameView(); }   // arranca con el preset de ejemplo
 function openQuiz() {
-  $('appView').style.display = 'none';
-  $('quiz').style.display = 'flex';
+  hideAll(); $('quiz').style.display = 'flex';
   renderQuiz();
   window.scrollTo({ top: 0 });
 }
+
+/* ── Render del modo ejercicio ── */
+const LEVER_META = {
+  reposicion: { label: 'Reposición de bajas', tipo: 'coste', max: 100, step: 5, dec: 0 },
+  restruct:   { label: 'Reestructuración extra', tipo: 'coste', max: 100, step: 5, dec: 0 },
+  prodPwC:    { label: 'Productividad propia', tipo: 'ingreso', max: 20, step: 0.5, dec: 1 },
+  nuevaDem:   { label: 'Nuevos servicios', tipo: 'ingreso', max: 20, step: 0.5, dec: 1 },
+};
+function leverTarget(lever) {  // último valor decidido (o base), en fracción
+  const decs = game.timeline.filter(d => d.lever === lever);
+  return decs.length ? decs[decs.length - 1].value : (game.baseInputs[lever] || 0);
+}
+function renderLevers() {
+  let h = '';
+  for (const lever of GAME_CONFIG.palancas) {
+    const meta = LEVER_META[lever], lag = GAME_CONFIG.lags[lever];
+    const tgt = leverTarget(lever) * 100, eff = effectiveLever(lever, game.month, game.timeline, game.baseInputs) * 100;
+    h += `<div class="lever">
+      <div class="lever-head"><span class="lever-name">${meta.label} <span style="color:var(--muted);font-weight:400">· ${meta.tipo}</span></span><span class="lever-val" id="lvval_${lever}">${tgt.toFixed(meta.dec)}%</span></div>
+      <input type="range" id="lev_${lever}" min="0" max="${meta.max}" step="${meta.step}" value="${tgt}" oninput="onLeverChange('${lever}')">
+      <div class="lever-eff" id="lveff_${lever}">Efectivo este mes: ${eff.toFixed(meta.dec)}% · <span class="lever-lag">efecto pleno en ~${lag} ${lag === 1 ? 'mes' : 'meses'}</span></div>
+    </div>`;
+  }
+  $('gLevers').innerHTML = h;
+}
+function onLeverChange(lever) {
+  const meta = LEVER_META[lever], v = +$('lev_' + lever).value;
+  $('lvval_' + lever).textContent = v.toFixed(meta.dec) + '%';
+  setDecision(lever, v / 100);   // recompute + renderGameOutputs
+  const eff = effectiveLever(lever, game.month, game.timeline, game.baseInputs) * 100;
+  $('lveff_' + lever).innerHTML = `Efectivo este mes: ${eff.toFixed(meta.dec)}% · <span class="lever-lag">efecto pleno en ~${GAME_CONFIG.lags[lever]} ${GAME_CONFIG.lags[lever] === 1 ? 'mes' : 'meses'}</span>`;
+}
+
+function renderGameOutputs() {
+  if (!game.active || !game.history.length) return;
+  const meses = MODEL_CONFIG.reporte.meses, per = MODEL_CONFIG.reporte.periodificacion, bud = MODEL_CONFIG.reporte.presupuestoTLS;
+  const last = game.history[game.history.length - 1], lastB = game.baseHistory[game.baseHistory.length - 1];
+  $('gMonth').textContent = meses[game.month - 1];
+  $('gMonthN').textContent = game.month;
+  const fin = game.month >= GAME_CONFIG.nMeses;
+  $('gAdvance').disabled = fin;
+  $('gAdvance').textContent = fin ? 'Ejercicio cerrado ✓' : 'Avanzar mes ▶';
+  // Scoreboard
+  const ingYTD = game.history.reduce((s, x) => s + x.ingMes, 0);
+  let budYTD = 0; for (let m = 0; m < game.month; m++) budYTD += bud * per[m];
+  const pct = ingYTD / budYTD, ventaja = last.margAcum - lastB.margAcum;
+  const semColor = pct >= 1 ? '#2e8b57' : (pct >= 0.95 ? '#e0a800' : '#c0392b');
+  $('gScore').innerHTML = `
+    <div class="kpi"><span class="kpi-lbl">Ingreso YTD</span><span class="kpi-val">${fmtM(ingYTD)}</span><span class="kpi-delta"><span class="sem" style="background:${semColor}"></span>${fmtPct(pct)} ppto</span></div>
+    <div class="kpi"><span class="kpi-lbl">Tarifa / proyecto</span><span class="kpi-val">€${last.tarifa.toLocaleString('es-ES', { maximumFractionDigits: 2 })}k</span></div>
+    <div class="kpi"><span class="kpi-lbl">Margen del mes</span><span class="kpi-val">${fmtM(last.margMes)}</span></div>
+    <div class="kpi kpi-acc"><span class="kpi-lbl">Margen acumulado</span><span class="kpi-val">${fmtM(last.margAcum)}</span><span class="kpi-delta ${ventaja >= 0 ? 'up' : 'down'}">${ventaja >= 0 ? '▲' : '▼'} ${fmtM(Math.abs(ventaja))} vs no reaccionar</span></div>`;
+  // Chart: margen acumulado tu gestión vs sin reaccionar
+  const labels = game.history.map((_, i) => meses[i]);
+  const cfg = {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Tu gestión', data: game.history.map(x => M(x.margAcum)), borderColor: COL.mine, backgroundColor: 'rgba(226,113,29,0.12)', fill: true, tension: 0.25, pointRadius: 3 },
+      { label: 'Sin reaccionar', data: game.baseHistory.map(x => M(x.margAcum)), borderColor: COL.pre, borderDash: [6, 4], fill: false, tension: 0.25, pointRadius: 2 },
+    ] },
+    options: { ...baseOpts('M€'), scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }, y: { ticks: { color: '#6b7280', callback: v => '€' + v + 'M' }, grid: { color: '#e5e7eb' } } } },
+  };
+  upsert('chartGame', cfg);
+  // Reporte YTD del juego
+  const monthlyIng = game.history.map(x => x.ingTot);
+  renderGameReport(monthlyIng);
+  $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Reacciona en costes (reposición, reestructuración) o ingresos (productividad, nuevos servicios); recuerda el <strong>efecto diferido</strong>. ` +
+    (fin ? `<strong>Ejercicio cerrado.</strong> Resultado: ${fmtM(last.margAcum)} (${ventaja >= 0 ? '+' : ''}${fmtM(ventaja)} frente a no reaccionar).` : `Quedan ${GAME_CONFIG.nMeses - game.month} meses.`);
+}
+function renderGameReport(monthlyIng) {
+  const rep = buildReporteGame(monthlyIng, game.noise, game.month);
+  const nM = rep.meses.length;
+  let head = '<thead><tr class="months"><th class="col-name"></th>';
+  for (const mes of rep.meses) head += `<th colspan="3">${mes}</th>`;
+  head += '</tr><tr><th class="col-name">UGE/GRUPO DE PRODUCCIÓN</th>';
+  for (let m = 0; m < nM; m++) head += '<th>Ingreso Neto YTD</th><th>Presupuesto Producción - FY26</th><th>% Cumplimiento</th>';
+  head += '</tr></thead>';
+  const rowHtml = (r, cls) => {
+    let h = `<tr class="${cls}"><td class="col-name">${r.grupo || r.uge}</td>`;
+    for (let m = 0; m < nM; m++) h += numCell(r.ing[m], 'mstart') + numCell(r.bud[m]) + pctCell(r.pct[m]);
+    return h + '</tr>';
+  };
+  const spacer = `<tr class="spacer"><td colspan="${1 + nM * 3}"></td></tr>`;
+  let body = '<tbody>';
+  rep.grupos.forEach((g, i) => { if (i > 0) body += spacer; body += rowHtml(g, 'grp'); });
+  body += spacer + rowHtml(rep.all, 'all');
+  $('gReporte').innerHTML = head + body + '</tbody>';
+}
+function renderGame() { renderLevers(); renderGameOutputs(); }
 
 /* ════════════════════════════════════════════════════════════════════════════
    ORIGEN DE DATOS — leer el Excel real, exportar/importar JSON
