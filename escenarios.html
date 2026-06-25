@@ -489,28 +489,31 @@ let MODEL_CONFIG = {
     Ed:  -0.6,   // [C12] Elasticidad demanda
   },
   constantes: {              // Constantes A del modelo Q = A·P^E
-    AoPwC: 8390.45037657611,    // [G5]  AoPwC
-    AoC:   224677.615639427,    // [G6]  AoC
-    Ad:    1809686.566518604,   // [G7]  Ad
+    AoPwC: 8390.45037657611,     // [G5]  AoPwC
+    AoC:   224677.61563942698,   // [G6]  AoC
+    Ad:    1809686.5665186038,   // [G7]  Ad
   },
-  // Coste total de plantilla pre-IA [M17] (valor fijo en el Excel)
-  costeTotalPre: 63000,
-  // Pirámide de plantilla: [K4:Q16] nombre, FTE [L], Costes [M], Factor IA [C25:C37]
+  horasEstandar: 1512,         // [C102] horas estándar por FTE/año
+  // Plantilla v3 (14 categorías). FTE [M4:M17], Coste Previo [Q4:Q17],
+  // Horas [T4:T17], Índice de rotación esperada [C24:C37].
   plantilla: [
-    { cat: 'Partner',          fte: 24,  coste: 5480, factorIA: 0.25 },
-    { cat: 'Salaried Partner', fte: 51,  coste: 8740, factorIA: 0.35 },
-    { cat: 'Director',         fte: 68,  coste: 8960, factorIA: 0.45 },
-    { cat: 'Senior Manager',   fte: 92,  coste: 8010, factorIA: 0.60 },
-    { cat: 'Manager',          fte: 124, coste: 7420, factorIA: 0.80 },
-    { cat: 'Senior Associate', fte: 207, coste: 8890, factorIA: 1.15 },
-    { cat: 'Associate',        fte: 228, coste: 5340, factorIA: 1.60 },
-    { cat: 'Senior Manager 2', fte: 5,   coste: 360,  factorIA: 0.60 },
-    { cat: 'Specialist 5',     fte: 7,   coste: 310,  factorIA: 1.00 },
-    { cat: 'Specialist 4',     fte: 6,   coste: 280,  factorIA: 1.00 },
-    { cat: 'Specialist 3',     fte: 8,   coste: 340,  factorIA: 1.00 },
-    { cat: 'C. Producción',    fte: 138, coste: 5660, factorIA: 1.70 },
-    { cat: 'Becarios',         fte: 102, coste: 1040, factorIA: 2.20 },
+    { cat: 'Socio',                fte: 24,   coste: 0,          horas: 21064.63,          rotIdx: 0 },
+    { cat: 'Socio NE',             fte: 51,   coste: 10514.58,   horas: 45706.02,          rotIdx: -0.008264462809917356 },
+    { cat: 'Director',             fte: 68,   coste: 7409.5,     horas: 66428.75,          rotIdx: -0.013513513513513514 },
+    { cat: 'Senior Manager',       fte: 92,   coste: 9858.83,    horas: 106432.89,         rotIdx: -0.05102040816326531 },
+    { cat: 'Manager',              fte: 124,  coste: 10759.54,   horas: 148674.3,          rotIdx: -0.06048387096774194 },
+    { cat: 'Senior Associate',     fte: 207,  coste: 14177.97,   horas: 294863.81,         rotIdx: -0.10207197382769902 },
+    { cat: 'Associate',            fte: 228,  coste: 9193.08,    horas: 321811.4,          rotIdx: -0.11952191235059761 },
+    { cat: 'CA - Specialist 5',    fte: 5,    coste: 323.72,     horas: 1590.15,           rotIdx: 0 },
+    { cat: 'CA - Specialist 4',    fte: 7,    coste: 171.11,     horas: 2221.53,           rotIdx: 0 },
+    { cat: 'CA - Specialist 3',    fte: 6,    coste: 258.65,     horas: 1645.88,           rotIdx: 0 },
+    { cat: 'CA - Senior Manager 2',fte: 3.2,  coste: 363.69,     horas: 3693.06,           rotIdx: 0 },
+    { cat: 'CP - Admin/Spec',      fte: 138,  coste: 3841.79,    horas: 226200.65,         rotIdx: -0.11194029850746269 },
+    { cat: 'Becario IE',           fte: 15.4, coste: 240.82,     horas: 16589.84,          rotIdx: 0 },
+    { cat: 'Becario',              fte: 61,   coste: 475.1360952,horas: 63680.61508244685, rotIdx: 0 },
   ],
+  // Factor IA por nivel [C44:C56] (13 valores; el motor replica el mapeo del Excel).
+  factorIA: [0.25, 0.35, 0.45, 0.60, 0.80, 1.15, 1.60, 0.60, 1.00, 1.00, 1.00, 1.70, 2.20],
 
   // ── Datos de la hoja «Reporte» (seguimiento YTD mensual del comité) ──
   reporte: {
@@ -636,27 +639,31 @@ const QUESTIONNAIRE_CONFIG = {
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
-   CAPA 2 — MOTOR DE CÁLCULO  (porte fiel de las fórmulas de la hoja «Modelo»)
+   CAPA 2 — MOTOR DE CÁLCULO  (porte fiel de la hoja «Modelo» v3)
    --------------------------------------------------------------------------
-   inputs (todos en tanto por uno, ej. 0.20 = 20%):
+   inputs (tanto por uno salvo donde se indica):
      prodPwC    [C15] productividad propia
      prodC      [C16] productividad mercado/competencia
      internaliz [C19] internalización de clientes
      nuevaDem   [C20] nueva demanda por servicios nuevos
-     restruct   [C22] % de reestructuración aplicada
+     rotacion   [C22] rotación realizada (fracción de la esperada, ≤0,7)
+     reposicion [C39] % de reposición de las salidas (decisión empresarial)
+     restruct   [C41] % de reestructuración proactiva por IA (avanzado)
    ════════════════════════════════════════════════════════════════════════════ */
 function runModel(inputs, cfg = MODEL_CONFIG) {
-  const { prodPwC, prodC, internaliz, nuevaDem, restruct } = inputs;
+  const { prodPwC = 0, prodC = 0, internaliz = 0, nuevaDem = 0,
+          rotacion = 0, reposicion = 0, restruct = 0 } = inputs;
   const C6 = cfg.mercado.precio;
   const { Eo, EPwC, Ed } = cfg.elasticidades;
   const { AoPwC: G5, AoC: G6, Ad: G7 } = cfg.constantes;
+  const C102 = cfg.horasEstandar;
+  const C22 = rotacion, C39 = reposicion, C41 = restruct;
 
   // ── Equilibrio de mercado (Q = A·P^E) ──
   const G4 = C6;                                   // precio pre-IA
   const G8 = G5 * G4 ** Eo;                         // [G8]  Q PwC pre
   const G9 = G6 * G4 ** EPwC;                       // [G9]  Q competencia pre
   const G10 = G7 * G4 ** Ed;                        // [G10] Q demanda pre
-
   const I5 = G5 * (1 + prodPwC);                    // [I5] A oferta PwC post
   const I6 = G6 * (1 + prodC);                      // [I6] A oferta comp. post
   const I7 = G7 * (1 + (nuevaDem - internaliz));    // [I7] A demanda post
@@ -664,61 +671,73 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
   const I8 = I5 * I4 ** Eo;                         // [I8]  Q PwC post
   const I9 = I6 * I4 ** EPwC;                        // [I9]  Q competencia post
   const I10 = I7 * I4 ** Ed;                        // [I10] Q demanda post
-  const G11 = G8 + G9 - G10;                        // [G11] equilibrio pre (oferta − demanda)
-  const I11 = I8 + I9 - I10;                        // [I11] equilibrio post
+  const G11 = G8 + G9 - G10, I11 = I8 + I9 - I10;   // [G11/I11] equilibrio
 
-  // ── Cascada de reestructuración de plantilla ──
-  const staff = cfg.plantilla;
-  const L17 = staff.reduce((s, r) => s + r.fte, 0);     // FTE total pre
-  const Q = staff.map(r => r.coste / G8);               // [Q] coste por proyecto
-  const Pcoste = staff.map(r => r.coste / r.fte);       // [P] coste por FTE
-  const Q17 = Q.reduce((a, b) => a + b, 0);
-  const L20 = 1 - (1 / (1 + prodPwC));                  // [L20] factor ahorro
-  const N20 = I8;                                       // [N20]
-  const Q20 = restruct;                                 // [Q20]
-  const L35 = Q17 * L20;
-  const T = staff.map((r, i) => Q[i] * r.factorIA);     // [T] coste ponderado
-  const T35 = T.reduce((a, b) => a + b, 0);
-  const U = T.map(t => t / T35);                        // [U] peso
-  const Lc = U.map(u => u * L35);                       // ahorro
-  const Mc = Q.map((q, i) => q - Lc[i]);                // costes
-  const Nc = Mc.map(m => m * N20);                      // coste total
-  const Oc = Nc.map((n, i) => n / Pcoste[i]);           // FTE teórico
-  const Pv = Oc.map((o, i) => o - staff[i].fte);        // variación
-  const Qr = Pv.map(p => p * Q20);                      // reestructuración
-  const Rc = Oc.map((o, i) => o + Qr[i] - Pv[i]);       // FTE final
-  const Sc = Rc.map((r, i) => r * Pcoste[i]);           // coste final
-  const S35 = Sc.reduce((a, b) => a + b, 0);            // coste total post
-  const R35 = Rc.reduce((a, b) => a + b, 0);            // FTE total post
+  // ── Plantilla PRE-IA: rotación + reposición (14 categorías) ──
+  const st = cfg.plantilla, n = st.length, F = cfg.factorIA;
+  const M = st.map(r => r.fte);                          // [M] FTE previo
+  const Qc = st.map(r => r.coste);                       // [Q] coste previo
+  const Tc = st.map(r => r.horas);                       // [T] horas
+  const N = st.map((r, i) => r.rotIdx * M[i] * C22);     // [N] rotación (salidas, ≤0)
+  const O = N.map(v => -v * C39);                        // [O] reposición
+  const P = M.map((m, i) => m + N[i] + O[i]);            // [P] FTE final pre
+  const V = Qc.map((q, i) => M[i] ? q / M[i] : 0);       // [V] coste/FTE
+  const Wp = P.map((p, i) => (Qc[i] + N[i] * V[i]) / G8);// [W] coste proyecto (S/G8)
+  const X = Tc.map((t, i) => P[i] ? t / (P[i] * C102) : 0); // [X] ocupación
+  const M18 = sum(M), P18 = sum(P), Q18 = sum(Qc), T18 = sum(Tc), W18 = sum(Wp);
+
+  // ── Plantilla POST-IA: cascada de productividad (sobre la base con rotación) ──
+  const M23 = 1 - (1 / (1 + prodPwC)), M39 = W18 * M23;  // factor ahorro · ahorro total
+  // [X col "Coste x Factor"] — replica el mapeo desfasado del Excel para los pesos
+  const Xf = new Array(n).fill(0);
+  for (let j = 0; j < 11; j++) Xf[j] = Wp[j] * F[j];
+  Xf[11] = Wp[12] * F[11]; Xf[12] = Wp[13] * F[12]; Xf[13] = Xf[12];
+  const X39 = sum(Xf), Yw = Xf.map(x => X39 ? x / X39 : 0);
+  const O23 = I8;
+  const Mah = Yw.map((y, j) => j === 0 ? 0 : y * M39);   // ahorro
+  const Nco = Wp.map((w, j) => j === 0 ? 0 : w - Mah[j]);// costes
+  const Oct = Nco.map(nc => nc * O23);                   // coste total
+  const Pte = Oct.map((o, j) => j === 0 ? P[0] : (V[j] ? o / V[j] : 0)); // FTE teórico
+  const Qv = Pte.map((p, j) => j === 0 ? 0 : p - P[j]);  // variación
+  const Rr = Qv.map(q => q * C41);                       // reestructuración
+  const Sf = Pte.map((p, j) => j === 0 ? P[0] : p + Rr[j] - Qv[j]); // FTE final post
+  const Tf = Sf.map((s, j) => s * V[j]);                 // coste final post
+  const Uf = Pte.map((p, j) => p * X[j] * C102);         // horas post
+  const S39 = sum(Sf), T39 = sum(Tf), U39 = sum(Uf);
 
   // ── Resultados ──
-  const ingPre = G4 * G8,  ingPost = I4 * I8;
-  const costPre = cfg.costeTotalPre, costPost = S35;
+  const ingPre = G4 * G8, ingPost = I4 * I8;
+  const costPre = Q18, costPost = T39;
   const margPre = ingPre - costPre, margPost = ingPost - costPost;
   const sharePre = G8 / G10, sharePost = I8 / I10;
+  const ftePre = P18, ftePost = S39;
+  const horasPre = T18 / 1000, horasPost = U39 / 1000;
+  const ocupPre = T18 / (M18 * C102), ocupPost = U39 / (S39 * C102);
   const valorIA = (I8 - G8) * G4;          // [G31] valor generado por IA
-  const valorClientes = (G4 - I4) * I8;    // [G28] valor trasladado a clientes
-  const valorFirma = margPost - margPre;   // [G29 = H21] equities (variación de margen)
-  const valorStaff = costPost - costPre;   // [G30 = H20] staff (variación de coste)
+  const valorClientes = (G4 - I4) * I8;    // [G28] a clientes (precio)
+  const valorFirma = margPost - margPre;   // [G29] equities (Δ margen)
+  const valorStaff = costPost - costPre;   // [G30] staff (Δ coste)
+  const rotacionTotal = sum(N), reposicionTotal = sum(O);
 
   return {
     precioPre: G4, precioPost: I4,
-    // Equilibrios P·Q (datos de comprobación de la hoja «Modelo»)
-    qPwcPre: G8, qPwcPost: I8,             // [G8/I8]  oferta PwC (firma)
-    qCompPre: G9, qCompPost: I9,           // [G9/I9]  oferta competencia (mercado)
-    qDemPre: G10, qDemPost: I10,           // [G10/I10] demanda
-    eqPre: G11, eqPost: I11,               // [G11/I11] equilibrio (oferta − demanda)
+    qPwcPre: G8, qPwcPost: I8, qCompPre: G9, qCompPost: I9, qDemPre: G10, qDemPost: I10,
+    eqPre: G11, eqPost: I11,
     ingPre, ingPost, ingDif: ingPost - ingPre,
     costPre, costPost, costDif: costPost - costPre,
     margPre, margPost, margDif: margPost - margPre,
     pctMargPre: margPre / ingPre, pctMargPost: margPost / ingPost,
-    ftePre: L17, ftePost: R35, fteDif: R35 - L17,
+    ftePre, ftePost, fteDif: ftePost - ftePre,
     sharePre, sharePost, shareDif: sharePost - sharePre,
+    horasPre, horasPost, horasDif: horasPost - horasPre,
+    ocupPre, ocupPost, ocupDif: ocupPost - ocupPre,
+    rotacionTotal, reposicionTotal,
     valorIA, valorClientes, valorFirma, valorStaff,
-    // Efecto en la pirámide de categorías profesionales (FTE por categoría)
-    piramide: staff.map((r, i) => ({ cat: r.cat, pre: r.fte, post: Rc[i], dif: Rc[i] - r.fte })),
+    // Pirámide: FTE actual (M) → FTE tras rotación+IA (Sf) por categoría
+    piramide: st.map((r, i) => ({ cat: r.cat, pre: M[i], post: Sf[i], dif: Sf[i] - M[i] })),
   };
 }
+function sum(a) { return a.reduce((x, y) => x + y, 0); }
 
 /* ── Motor del «Reporte» mensual: distribuye el ingreso post-IA del escenario por
    UGE y mes (YTD), contra el presupuesto FY26 fijo. Réplica de la hoja «Reporte». ── */
@@ -1212,11 +1231,13 @@ const DEFAULT_MODEL_CONFIG = JSON.parse(JSON.stringify(MODEL_CONFIG));
 
 // Filas de la pirámide en la hoja «Modelo»: [nombre canónico, fila K/L/M].
 // El factor IA está en C(fila+21): K4→C25 … K16→C37.
+// [cat, fila] en la hoja «Modelo» v3 (filas 4-17). Por fila se lee:
+// FTE=M, Coste Previo=Q, Horas=T, Índice rotación=C(fila+20).
 const XLS_PLANTILLA = [
-  ['Partner', 4], ['Salaried Partner', 5], ['Director', 6], ['Senior Manager', 7],
-  ['Manager', 8], ['Senior Associate', 9], ['Associate', 10], ['Senior Manager 2', 11],
-  ['Specialist 5', 12], ['Specialist 4', 13], ['Specialist 3', 14], ['C. Producción', 15],
-  ['Becarios', 16],
+  ['Socio', 4], ['Socio NE', 5], ['Director', 6], ['Senior Manager', 7],
+  ['Manager', 8], ['Senior Associate', 9], ['Associate', 10], ['CA - Specialist 5', 11],
+  ['CA - Specialist 4', 12], ['CA - Specialist 3', 13], ['CA - Senior Manager 2', 14],
+  ['CP - Admin/Spec', 15], ['Becario IE', 16], ['Becario', 17],
 ];
 
 function _cellRaw(ws, addr) { const c = ws[addr]; return c == null ? undefined : c; }
@@ -1250,23 +1271,27 @@ function parseExcelToConfig(wb) {
   grab('G5', 'Constante AoPwC', v => cfg.constantes.AoPwC = v);
   grab('G6', 'Constante AoC', v => cfg.constantes.AoC = v);
   grab('G7', 'Constante Ad', v => cfg.constantes.Ad = v);
-  grab('M17', 'Coste total pre-IA', v => cfg.costeTotalPre = v);
-  // Pirámide de plantilla
+  grab('C102', 'Horas estándar', v => cfg.horasEstandar = v);
+  // Plantilla v3: FTE (M), Coste Previo (Q), Horas (T), Índice rotación (C fila+20)
   cfg.plantilla = XLS_PLANTILLA.map(([cat, row]) => {
-    const fte = _num(ws, 'L' + row), coste = _num(ws, 'M' + row), factorIA = _num(ws, 'C' + (row + 21));
-    if (fte === undefined) miss.push(`FTE ${cat} (L${row})`);
-    if (coste === undefined) miss.push(`Coste ${cat} (M${row})`);
-    if (factorIA === undefined) miss.push(`Factor IA ${cat} (C${row + 21})`);
-    return { cat, fte: fte ?? 0, coste: coste ?? 0, factorIA: factorIA ?? 1 };
+    const fte = _num(ws, 'M' + row), coste = _num(ws, 'Q' + row),
+          horas = _num(ws, 'T' + row), rotIdx = _num(ws, 'C' + (row + 20));
+    if (fte === undefined) miss.push(`FTE ${cat} (M${row})`);
+    if (horas === undefined) miss.push(`Horas ${cat} (T${row})`);
+    return { cat, fte: fte ?? 0, coste: coste ?? 0, horas: horas ?? 0, rotIdx: rotIdx ?? 0 };
   });
-  // Reporte: presupuesto y periodificación
-  grab('C53', 'Presupuesto TLS', v => cfg.reporte.presupuestoTLS = v);
+  // Factor IA por nivel [C44:C56]
+  const fIA = [];
+  for (let r = 44; r <= 56; r++) { const v = _num(ws, 'C' + r); if (v === undefined) miss.push(`Factor IA (C${r})`); fIA.push(v ?? 1); }
+  cfg.factorIA = fIA;
+  // Reporte: presupuesto [C72] y periodificación [C59:C70]
+  grab('C72', 'Presupuesto TLS', v => cfg.reporte.presupuestoTLS = v);
   const per = [];
-  for (let r = 40; r <= 51; r++) { const v = _num(ws, 'C' + r); if (v === undefined) miss.push(`Periodificación (C${r})`); per.push(v ?? 0); }
+  for (let r = 59; r <= 70; r++) { const v = _num(ws, 'C' + r); if (v === undefined) miss.push(`Periodificación (C${r})`); per.push(v ?? 0); }
   cfg.reporte.periodificacion = per;
-  // Pesos UGE: mapear por nombre desde B57:D81 a la estructura de grupos
+  // Pesos UGE: mapear por nombre desde B76:D100 a la estructura de grupos
   const ugeW = {};
-  for (let r = 57; r <= 81; r++) {
+  for (let r = 76; r <= 100; r++) {
     const name = _cellRaw(ws, 'B' + r), w = _num(ws, 'D' + r);
     if (name && name.v != null && w !== undefined) ugeW[String(name.v).trim().toUpperCase()] = w;
   }
@@ -1281,7 +1306,7 @@ function applyConfig(cfg, sourceLabel, miss = []) {
   MODEL_CONFIG = cfg;
   rebuildNoise();
   onInput();
-  const total = 9 + 1 + XLS_PLANTILLA.length * 3 + 1 + 12 + countUges();
+  const total = 10 + XLS_PLANTILLA.length * 2 + 13 + 1 + 12 + countUges();
   const ok = total - miss.length;
   let html = `<strong>Origen activo:</strong> ${sourceLabel}. `;
   if (miss.length === 0) {
