@@ -553,8 +553,12 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
   <!-- PANTALLA 2: RESULTADOS + bronca del CEO (tras la cutscene) -->
   <div id="gResults" hidden>
-    <div class="gx2-h">
-      <div class="gx2-title">Resultados — cierre a <span id="gMonth">—</span> · mes <span id="gMonthN">0</span>/12</div>
+    <div class="gx2-h" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="gx2-title">Resultados — cierre a <span id="gMonth">—</span> · mes <span id="gMonthN">0</span>/12<span id="gReview" style="display:none;color:var(--accent);font-weight:700"> · revisión</span></div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="gx2-btn ghost" id="gPrev" onclick="reviewMonth((game.viewMonth||game.month)-1)" style="padding:7px 13px" title="Mes anterior">◀</button>
+        <button class="gx2-btn ghost" id="gNextM" onclick="reviewMonth((game.viewMonth||game.month)+1)" style="padding:7px 13px" title="Mes siguiente">▶</button>
+      </div>
     </div>
     <div class="gx2-kpis kpi-grid" id="gScore"></div>
     <div class="gx2-grid">
@@ -569,6 +573,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     </div>
     <div class="gx2-actions">
       <button class="gx2-btn primary" id="gNext" onclick="toDecide()">Tomar decisiones ▶</button>
+      <button class="gx2-btn ghost" onclick="resetGame()">↺ Reiniciar</button>
       <button class="gx2-btn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙ Analista</button>
     </div>
     <div class="legend-note" id="gNote"></div>
@@ -1058,23 +1063,34 @@ function resolveMonth() {
 }
 function toDecide() { showDecide(); }
 function showDecide() {
+  game.viewMonth = game.month;
   $('gDecide').hidden = false; $('gResults').hidden = true;
   renderLevers(); renderTurn(); updateDecideHeader();
   window.scrollTo({ top: 0 });
 }
 function showResults() {
+  game.viewMonth = game.month;   // por defecto, el mes recién cerrado
   $('gDecide').hidden = true; $('gResults').hidden = false;
   renderGameOutputs(); renderTurn();
   Object.values(charts).forEach(c => { try { c.resize(); } catch (e) {} });
   window.scrollTo({ top: 0 });
 }
+// Revisar un mes ya transcurrido (solo lectura) sin cambiar las decisiones.
+function reviewMonth(m) {
+  if (!game.active || m < 1 || m > game.month) return;
+  game.viewMonth = m;
+  $('gDecide').hidden = true; $('gResults').hidden = false;
+  renderGameOutputs(); renderTurn();
+}
 // Marcador de turno (J A S O N D …) con el mes actual resaltado.
 function renderTurn() {
   if (!$('gTurn')) return;
-  const meses = MODEL_CONFIG.reporte.meses;
+  const meses = MODEL_CONFIG.reporte.meses, vm = game.viewMonth || game.month;
   $('gTurn').innerHTML = meses.map((m, i) => {
-    const cls = (i + 1) < game.month ? 'dn' : ((i + 1) === game.month ? 'on' : '');
-    return `<span class="m ${cls}" title="${m}">${m[0]}</span>`;
+    const n = i + 1, resolved = n <= game.month;
+    const cls = n === vm ? 'on' : (resolved ? 'dn' : '');
+    const click = resolved ? ` onclick="reviewMonth(${n})" style="cursor:pointer"` : '';
+    return `<span class="m ${cls}"${click} title="${m}${resolved ? ' · ver resultados' : ''}">${m[0]}</span>`;
   }).join('');
 }
 function updateDecideHeader() {
@@ -1565,13 +1581,20 @@ function applyQuizToModel() {
   onInput();
 }
 function hideAll() { $('quiz').style.display = 'none'; $('appView').style.display = 'none'; $('gameView').style.display = 'none'; }
-function showAppView() {   // dashboard anual (reveal bajo demanda — spoiler)
-  hideAll(); $('appView').style.display = 'flex';
+// Cabecera/pie del sitio: visibles solo en el modo analista (dashboard); ocultos
+// durante la partida (cuestionario + juego) para mayor inmersión.
+function siteChrome(visible) {
+  const h = document.querySelector('header'), f = document.querySelector('footer');
+  if (h) h.style.display = visible ? '' : 'none';
+  if (f) f.style.display = visible ? '' : 'none';
+}
+function showAppView() {   // dashboard anual / modo analista (bajo demanda)
+  hideAll(); siteChrome(true); $('appView').style.display = 'flex';
   Object.values(charts).forEach(c => c.resize());
   window.scrollTo({ top: 0 });
 }
-function showGameView() {  // el ejercicio mensual (el reveal por defecto)
-  hideAll(); $('gameView').style.display = 'block';
+function showGameView() {  // el ejercicio mensual (inmersivo, sin cabecera)
+  hideAll(); siteChrome(false); $('gameView').style.display = 'block';
   Object.values(charts).forEach(c => c.resize());
   window.scrollTo({ top: 0 });
 }
@@ -1579,7 +1602,7 @@ function showGameView() {  // el ejercicio mensual (el reveal por defecto)
 function finishQuiz() { applyQuizToModel(); startGame(); }   // startGame ya muestra el juego
 function skipQuiz() { startGame(); }                          // arranca con el preset de ejemplo
 function openQuiz() {
-  hideAll(); $('quiz').style.display = 'flex';
+  hideAll(); siteChrome(false); $('quiz').style.display = 'flex';
   renderQuiz();
   window.scrollTo({ top: 0 });
 }
@@ -1624,17 +1647,22 @@ function onLeverPick(lever, value) {
 function renderGameOutputs() {
   if (!game.active || !game.history.length) return;
   const meses = MODEL_CONFIG.reporte.meses, per = MODEL_CONFIG.reporte.periodificacion, bud = MODEL_CONFIG.reporte.presupuestoTLS;
-  const last = game.history[game.history.length - 1], lastB = game.baseHistory[game.baseHistory.length - 1];
-  $('gMonth').textContent = meses[game.month - 1];
-  $('gMonthN').textContent = game.month;
-  const fin = game.month >= GAME_CONFIG.nMeses;
-  if ($('gNext')) {   // botón de la pantalla de resultados
+  const latest = game.month;
+  const vm = Math.min(Math.max(1, game.viewMonth || latest), latest);   // mes mostrado (revisión)
+  const last = game.history[vm - 1], lastB = game.baseHistory[vm - 1];
+  $('gMonth').textContent = meses[vm - 1];
+  $('gMonthN').textContent = vm;
+  const fin = latest >= GAME_CONFIG.nMeses;
+  if ($('gNext')) {   // botón de la pantalla de resultados (sobre el mes actual)
     $('gNext').disabled = fin;
     $('gNext').textContent = fin ? 'Ejercicio cerrado ✓' : 'Tomar decisiones ▶';
   }
-  // Scoreboard
-  const ingYTD = game.history.reduce((s, x) => s + x.ingMes, 0);
-  let budYTD = 0; for (let m = 0; m < game.month; m++) budYTD += bud * per[m];
+  if ($('gPrev')) $('gPrev').disabled = vm <= 1;
+  if ($('gNextM')) $('gNextM').disabled = vm >= latest;
+  if ($('gReview')) $('gReview').style.display = (vm < latest) ? 'inline' : 'none';
+  // Scoreboard (acumulado hasta el mes mostrado)
+  let ingYTD = 0; for (let i = 0; i < vm; i++) ingYTD += game.history[i].ingMes;
+  let budYTD = 0; for (let m = 0; m < vm; m++) budYTD += bud * per[m];
   const pct = ingYTD / budYTD, ventaja = last.margAcum - lastB.margAcum;
   const semColor = pct >= 1 ? '#2e8b57' : (pct >= 0.95 ? '#e0a800' : '#c0392b');
   $('gScore').innerHTML = `
@@ -1642,19 +1670,19 @@ function renderGameOutputs() {
     <div class="kpi"><span class="kpi-lbl">Tarifa neta (€/h)</span><span class="kpi-val">€${last.tarifaNeta.toLocaleString('es-ES', { maximumFractionDigits: 0 })}/h</span></div>
     <div class="kpi"><span class="kpi-lbl">FTEs</span><span class="kpi-val">${fmtInt(last.fte)}</span></div>
     <div class="kpi kpi-acc"><span class="kpi-lbl">Margen acumulado</span><span class="kpi-val">${fmtM(last.margAcum)}</span><span class="kpi-delta ${ventaja >= 0 ? 'up' : 'down'}">${ventaja >= 0 ? '▲' : '▼'} ${fmtM(Math.abs(ventaja))} vs no reaccionar</span></div>`;
-  // Cuadro de Geni: acumulado a este mes, por grupo de producción y UGE
+  // Cuadro de Geni y gráfica, acumulados hasta el mes mostrado
   const monthlyIng = game.history.map(x => x.ingTot);
-  renderGameSnapshot(monthlyIng);
-  // Gráfica de evolución de ingreso y margen acumulados (como en la versión anterior)
-  renderGameEvo();
-  $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Decisiones: <strong>despidos</strong> y <strong>reposición</strong> (coste) e <strong>inversión en IA</strong> (coste que sube la productividad por encima de 1 M€); recuerda el <strong>efecto diferido</strong>. ` +
-    (fin ? `<strong>Ejercicio cerrado.</strong> Resultado: ${fmtM(last.margAcum)} (${ventaja >= 0 ? '+' : ''}${fmtM(ventaja)} frente a no reaccionar).` : `Quedan ${GAME_CONFIG.nMeses - game.month} meses.`);
+  renderGameSnapshot(monthlyIng, vm);
+  renderGameEvo(vm);
+  $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Decisiones: <strong>despidos</strong> y <strong>reposición</strong> (coste) e <strong>inversión en IA</strong> (coste con efecto diferido). ` +
+    (fin ? `<strong>Ejercicio cerrado.</strong> Resultado: ${fmtM(game.history[latest - 1].margAcum)}.` : `Quedan ${GAME_CONFIG.nMeses - latest} meses.`) +
+    ` <span style="color:var(--muted)">Pulsa los meses del marcador para revisar resultados anteriores.</span>`;
 }
 // Cuadro «Geni»: snapshot del acumulado a este mes, desglosado por grupo de
 // producción con sus UGEs anidadas (no solo UGEs) + total TLS.
-function renderGameSnapshot(monthlyIng) {
-  const rep = buildReporteGame(monthlyIng, game.noise, game.month);
-  const k = rep.meses.length - 1;   // último mes = acumulado a hoy
+function renderGameSnapshot(monthlyIng, upTo) {
+  const rep = buildReporteGame(monthlyIng, game.noise, upTo || game.month);
+  const k = rep.meses.length - 1;   // último mes = acumulado al mes mostrado
   if (k < 0) { $('gSnapshot').innerHTML = ''; return; }
   let head = '<thead><tr class="months"><th class="col-name"></th>'
     + `<th colspan="3">Acumulado a ${rep.meses[k]}</th></tr>`
@@ -1673,12 +1701,13 @@ function renderGameSnapshot(monthlyIng) {
   $('gSnapshot').innerHTML = head + body + '</tbody>';
 }
 // Gráfica de evolución: ingreso y margen acumulados YTD mes a mes (versión anterior).
-function renderGameEvo() {
+function renderGameEvo(upTo) {
   const meses = MODEL_CONFIG.reporte.meses;
-  const labels = game.history.map((_, i) => meses[i]);
+  const hist = game.history.slice(0, upTo || game.history.length);
+  const labels = hist.map((_, i) => meses[i]);
   let ingAcum = 0;
-  const ing = game.history.map(x => M(ingAcum += x.ingMes));
-  const marg = game.history.map(x => M(x.margAcum));
+  const ing = hist.map(x => M(ingAcum += x.ingMes));
+  const marg = hist.map(x => M(x.margAcum));
   const cfg = {
     type: 'line',
     data: { labels, datasets: [
@@ -1966,6 +1995,12 @@ renderQuiz();
   <div class="gx-hint" id="cbHint" hidden>Pulsa cualquier tecla para continuar</div>
 </div>
 
+<!-- Pantalla final de cierre del ejercicio (tras el veredicto del CEO) -->
+<div class="gx-overlay" id="gxFinale" hidden>
+  <div class="gx-ending-txt" id="gxFinaleTxt"></div>
+  <div class="gx-hint" id="gxFinaleHint">Pulsa cualquier tecla para ver el resultado</div>
+</div>
+
 <script id="gameux-script">
 /* ════════════ GAME UX (v4) ════════════
    Capa de experiencia "juego": intro cutscene (portada del motor del jefe),
@@ -2210,43 +2245,81 @@ const GAMEUX = (function () {
   }
 
   /* ─────────── BEAT MENSUAL DEL CEO ─────────── */
+  // El tono del CEO evoluciona con el ejercicio: arranque (1-3), medio año (4-7),
+  // recta final (8-11) y veredicto de cierre (12). Por fase × semáforo.
   const LINES = {
-    verde: [
-      'Esto sí me gusta. Vamos por delante del presupuesto, seguid así.',
-      '¡Excelente mes! A este ritmo el 168,5 es nuestro. No os relajéis.',
-      'Buen trabajo. El consejo va a estar contento con estos números.',
-    ],
-    ambar: [
-      'Justitos. Cumplimos por los pelos, pero esto no llega para el 168,5.',
-      'Mmm… ni bien ni mal. Necesito que apretemos, no me vale con empatar.',
-      'Vamos al límite del presupuesto. Un mal mes y nos salimos. Ojo.',
-    ],
-    rojo: [
-      '¿Qué está pasando aquí? Estamos por debajo del presupuesto. Reaccionad.',
-      'Esto es un problema serio. Así no llegamos ni de lejos al objetivo.',
-      'No me gusta nada lo que veo. Quiero ver decisiones, y rápido.',
-    ],
+    inicio: {
+      verde: ['Buen arranque, vamos por delante. Quiero que esto se mantenga todo el año.',
+              'Empezamos con fuerza. Así se construye un buen FY27.'],
+      ambar: ['Arranque tibio, justo en el presupuesto. Corrijamos pronto, queda mucho año.',
+              'Ni fu ni fa para empezar. Tenemos margen de mejora, a por ello.'],
+      rojo:  ['Mal comienzo, por debajo de presupuesto. El año es largo, pero reaccionad ya.',
+              'No es el arranque que esperaba. Quiero ver decisiones.'],
+    },
+    medio: {
+      verde: ['Vamos por la mitad y por encima del plan. Excelente; pero no os confiéis.',
+              'Medio ejercicio y por delante del presupuesto. El consejo está contento.'],
+      ambar: ['Media maratón y vamos justos. A estas alturas esto tiene que despegar.',
+              'Estamos empatando con el presupuesto. A mitad de año necesito más.'],
+      rojo:  ['Mitad de año y por debajo del objetivo. Esto pinta mal, hay que actuar.',
+              'Llevamos medio ejercicio en rojo. Se acaban las excusas.'],
+    },
+    final: {
+      verde: ['Recta final y por delante. Mantened el pulso, el 168,5 está al alcance.',
+              'Queda poco y vamos bien. No es momento de relajarse.'],
+      ambar: ['Recta final ajustadísima. Cada mes cuenta para llegar al 168,5.',
+              'Estamos al límite y queda poco. Necesito un empujón final.'],
+      rojo:  ['Se acaba el año y vamos por debajo. Esto es urgente.',
+              'Recta final en rojo. O reaccionamos ya, o no llegamos.'],
+    },
   };
-  let cb = null, cbOpen = false, cbDone = false, cbOnDone = null;
-  function ceoReact(onDone) {
-    cbOnDone = onDone || null;
-    if (typeof game === 'undefined' || !game.active || game.month < 1) { if (cbOnDone) cbOnDone(); return; }
+  const VEREDICTO = {
+    verde: 'Hemos cerrado el FY27 por encima del presupuesto. Enhorabuena a todos: así se planifica un año.',
+    ambar: 'Cerramos el año rozando el objetivo, muy justos. Nos ha faltado un punto más de ambición.',
+    rojo:  'Cerramos por debajo del presupuesto. Esto no es lo que esperábamos; el año que viene no puede repetirse.',
+  };
+  function ceoState() {
     const R = MODEL_CONFIG.reporte, per = R.periodificacion, bud = R.presupuestoTLS;
-    const last = game.history[game.history.length - 1];
-    const lastB = game.baseHistory[game.baseHistory.length - 1];
     let ingYTD = 0; for (const x of game.history) ingYTD += x.ingMes;
     let budYTD = 0; for (let m = 0; m < game.month; m++) budYTD += bud * per[m];
     const pct = budYTD ? ingYTD / budYTD : 1;
     const bucket = pct >= 1 ? 'verde' : (pct >= 0.95 ? 'ambar' : 'rojo');
+    const last = game.history[game.history.length - 1], lastB = game.baseHistory[game.baseHistory.length - 1];
+    return { pct, bucket, ventaja: last.margAcum - lastB.margAcum, margAcum: last.margAcum };
+  }
+  let cb = null, cbOpen = false, cbDone = false, cbOnDone = null;
+  function ceoReact(onDone) {
+    const realDone = onDone || null;
+    if (typeof game === 'undefined' || !game.active || game.month < 1) { if (realDone) realDone(); return; }
+    const R = MODEL_CONFIG.reporte;
+    const { bucket } = ceoState();
+    const final = game.month >= GAME_CONFIG.nMeses;
+    const phase = game.month <= 3 ? 'inicio' : (game.month <= 7 ? 'medio' : 'final');
     const mes = R.meses[game.month - 1] || ('mes ' + game.month);
-    const arr = LINES[bucket]; const line = arr[(game.month - 1) % arr.length];
-    $('cbTag').textContent = `${mes} · mes ${game.month}/12`;
+    let line;
+    if (final) line = VEREDICTO[bucket];
+    else { const arr = LINES[phase][bucket]; line = arr[(game.month - 1) % arr.length]; }
+    $('cbTag').textContent = final ? `VEREDICTO FY27 · cierre a ${mes}` : `${mes} · mes ${game.month}/12`;
     if (!cb) cb = makeTalker($('cbCanvas'), ASSETS.ceo, MOUTH.ceo);
     $('ceoBeat').hidden = false; $('cbBubbleWrap').hidden = false; $('cbHint').hidden = true;
     cbOpen = true; cbDone = false; initAudio();
+    cbOnDone = final ? () => showFinale(realDone) : realDone;
     typeOut(cb, $('cbBubble'), line, () => { cbDone = true; $('cbHint').hidden = false; });
   }
   function closeBeat() { cbOpen = false; $('ceoBeat').hidden = true; const f = cbOnDone; cbOnDone = null; if (f) f(); }
+
+  // Pantalla final de cierre del ejercicio (tras el veredicto del CEO).
+  let finaleOpen = false, finaleDone = null;
+  function showFinale(done) {
+    const s = ceoState();
+    const head = s.bucket === 'verde' ? '¡FY27 CERRADO CON ÉXITO!'
+      : (s.bucket === 'ambar' ? 'FY27 CERRADO — AL FILO' : 'FY27 CERRADO — POR DEBAJO');
+    $('gxFinaleTxt').innerHTML = `${head}<br><span style="font-size:.46em;line-height:1.5;display:inline-block;margin-top:14px">`
+      + `Margen acumulado <b>${fmtM(s.margAcum)}</b> · <b>${fmtPct(s.pct)}</b> del presupuesto<br>`
+      + `${s.ventaja >= 0 ? '+' : ''}${fmtM(s.ventaja)} frente a no reaccionar</span>`;
+    $('gxFinale').hidden = false; finaleOpen = true; finaleDone = done || null;
+  }
+  function closeFinale() { finaleOpen = false; $('gxFinale').hidden = true; const f = finaleDone; finaleDone = null; if (f) f(); }
   function beatAdvance() {
     if (!cbOpen) return false;
     if (cbDone) closeBeat();   // si aún escribe, ignora (espera a terminar)
@@ -2264,6 +2337,7 @@ const GAMEUX = (function () {
   // ── Entradas globales (teclado + clic) ──
   function onKey(e) {
     if (e.repeat) return;
+    if (finaleOpen) { e.preventDefault(); closeFinale(); return; }
     if (cbOpen) { e.preventDefault(); beatAdvance(); return; }
     if (!$('introScene').hidden) { e.preventDefault(); introAdvance(); return; }
     // No interceptar atajos mientras se escribe en un campo (modo analista)
@@ -2276,6 +2350,7 @@ const GAMEUX = (function () {
     }
   }
   function onClick() {
+    if (finaleOpen) { closeFinale(); return; }
     if (cbOpen) { beatAdvance(); return; }
     if (!$('introScene').hidden) introAdvance();
   }
@@ -2285,6 +2360,7 @@ const GAMEUX = (function () {
     // Clic para avanzar cutscenes (en intro y beat); no interfiere con el juego.
     $('introScene').addEventListener('click', onClick);
     $('ceoBeat').addEventListener('click', onClick);
+    $('gxFinale').addEventListener('click', onClick);
     const gv = $('gameView'); if (gv) gv.classList.add('gx2');
     startIntro();
   }
