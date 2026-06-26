@@ -549,6 +549,12 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <h3>Reacciona: 2 decisiones rápidas</h3>
         <div class="csub">Despidos y reposición. Los cambios surten efecto con retardo (no este mismo mes).</div>
         <div id="gLevers"></div>
+        <div class="lever" style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">
+          <div class="lever-head"><span class="lever-name">Inversión en IA <span style="color:var(--muted);font-weight:400">· coste anual</span></span></div>
+          <input type="number" id="gInversionIA" min="0" step="100" value="0" oninput="onGameInvest()"
+                 style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+          <div class="lever-eff">Miles de €/año. Coste real: resta directo al margen. Editable durante el ejercicio.</div>
+        </div>
       </div>
       <div class="card" style="padding:0; overflow:hidden;">
         <div style="padding:16px 16px 4px"><h3 style="margin:0">Cuadro de seguimiento — acumulado a este mes</h3>
@@ -733,6 +739,15 @@ const QUESTIONNAIRE_CONFIG = {
           'No se contempla', 'Solo congelación selectiva', 'Ajuste parcial del excedente', 'Ajuste activo alineado a la eficiencia' ] },
         { id: 'S2', texto: 'Velocidad del ajuste', peso: 0.4, opciones: [
           'No aplica', 'Muy gradual (>3 años)', 'Medio (1–3 años)', 'Rápido (<1 año)' ] },
+      ] },
+    { id: 'INV', titulo: 'Inversión en IA', tipo: 'invest', montos: [0, 1000, 5000, 10000],
+      desc: 'Coste anual de la inversión en IA. Es un coste real que resta directamente al margen (verificable). Podréis editarlo en cualquier momento durante el ejercicio.',
+      preguntas: [
+        { id: 'INV1', texto: 'Presupuesto anual dedicado a IA (tecnología + equipo + desarrollo)', peso: 1, opciones: [
+          'Sin inversión dedicada (0 €)',
+          'Contenida (~1 M€/año)',
+          'Media (~5 M€/año)',
+          'Alta (~10 M€/año)' ] },
       ] },
   ],
 };
@@ -1459,7 +1474,13 @@ function applyQuizToModel() {
   const B = QC.criterios.find(c => c.id === 'B');
   const prodCIntensity = B ? critIntensity(B) : 0;   // 0..1
   for (const crit of QC.criterios) {
-    if (crit.tipo === 'gate' || !crit.slider) continue;
+    if (crit.tipo === 'invest') {   // inversión IA → coste real (miles €/año)
+      const a = quizAnswers[crit.id] || {};
+      const idx = a[crit.preguntas[0].id] || 0;
+      $('inversionIA').value = crit.montos[idx] ?? 0;
+      continue;
+    }
+    if (!crit.slider) continue;
     let v = critValue(crit);
     // La productividad propia y los nuevos servicios se aplican DIRECTOS (sin gate de inversión).
     if (crit.slider === 'rotacion') v *= (1 - QC.rotacionDamp * prodCIntensity); // amortiguación de mercado
@@ -1499,7 +1520,14 @@ function leverTarget(lever) {  // último valor decidido (o base), en fracción
   const decs = game.timeline.filter(d => d.lever === lever);
   return decs.length ? decs[decs.length - 1].value : (game.baseInputs[lever] || 0);
 }
+function onGameInvest() {
+  const v = +$('gInversionIA').value || 0;
+  $('inversionIA').value = v;                       // sincroniza con el dashboard anual
+  if (game.baseInputs) game.baseInputs.inversionIA = v;
+  recomputeHistory();                               // recalcula el margen con el nuevo coste
+}
 function renderLevers() {
+  if (game.baseInputs) $('gInversionIA').value = game.baseInputs.inversionIA || 0;  // refleja el valor vigente
   let h = '';
   for (const lever of GAME_CONFIG.palancas) {
     const cfg = LEVER_OPTIONS[lever], lag = GAME_CONFIG.lags[lever];
