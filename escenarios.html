@@ -534,14 +534,14 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <div class="csub">Los cambios surten efecto con retardo (no este mismo mes).</div>
         <div id="gLevers"></div>
       </div>
-      <div class="card">
-        <h3>Margen acumulado — tu gestión vs. no reaccionar</h3>
-        <div class="csub">El marcador del ejercicio (miles de €).</div>
-        <div class="chart-wrap" style="height:300px"><canvas id="chartGame"></canvas></div>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px 16px 4px"><h3 style="margin:0">Cuadro de seguimiento — acumulado a este mes</h3>
+        <div class="csub">Ingreso neto YTD por grupo de producción y UGE (formato «mail de Geni»).</div></div>
+        <div class="reporte-scroll"><table class="reporte-table" id="gSnapshot"></table></div>
       </div>
     </div>
 
-    <div class="section-title">Seguimiento YTD — formato comité</div>
+    <div class="section-title">Seguimiento YTD mensual — formato comité</div>
     <div class="card" style="padding:0; overflow:hidden;">
       <div class="reporte-scroll"><table class="reporte-table" id="gReporte"></table></div>
     </div>
@@ -922,7 +922,9 @@ function runMonth(m, timeline, baseInputs, cfg = MODEL_CONFIG) {
   const per = cfg.reporte.periodificacion[m - 1];
   const ingMes = annual.ingPost * per;
   const costMes = annual.costPost / GAME_CONFIG.nMeses;
-  return { ingMes, costMes, margMes: ingMes - costMes, tarifa: annual.precioPost, ingTot: annual.ingPost, annual };
+  // Tarifa neta = ingresos / horas (€/hora), no el precio por proyecto.
+  const tarifaNeta = annual.horasPost ? annual.ingPost / annual.horasPost : 0;
+  return { ingMes, costMes, margMes: ingMes - costMes, tarifa: annual.precioPost, tarifaNeta, ingTot: annual.ingPost, annual };
 }
 
 // Construye el reporte YTD del juego: ingreso mensual por UGE (puede variar mes a mes), acumulado.
@@ -1531,25 +1533,38 @@ function renderGameOutputs() {
   const semColor = pct >= 1 ? '#2e8b57' : (pct >= 0.95 ? '#e0a800' : '#c0392b');
   $('gScore').innerHTML = `
     <div class="kpi"><span class="kpi-lbl">Ingreso YTD</span><span class="kpi-val">${fmtM(ingYTD)}</span><span class="kpi-delta"><span class="sem" style="background:${semColor}"></span>${fmtPct(pct)} ppto</span></div>
-    <div class="kpi"><span class="kpi-lbl">Tarifa / proyecto</span><span class="kpi-val">€${last.tarifa.toLocaleString('es-ES', { maximumFractionDigits: 2 })}k</span></div>
+    <div class="kpi"><span class="kpi-lbl">Tarifa neta (€/h)</span><span class="kpi-val">€${last.tarifaNeta.toLocaleString('es-ES', { maximumFractionDigits: 0 })}/h</span></div>
     <div class="kpi"><span class="kpi-lbl">Margen del mes</span><span class="kpi-val">${fmtM(last.margMes)}</span></div>
     <div class="kpi kpi-acc"><span class="kpi-lbl">Margen acumulado</span><span class="kpi-val">${fmtM(last.margAcum)}</span><span class="kpi-delta ${ventaja >= 0 ? 'up' : 'down'}">${ventaja >= 0 ? '▲' : '▼'} ${fmtM(Math.abs(ventaja))} vs no reaccionar</span></div>`;
-  // Chart: margen acumulado tu gestión vs sin reaccionar
-  const labels = game.history.map((_, i) => meses[i]);
-  const cfg = {
-    type: 'line',
-    data: { labels, datasets: [
-      { label: 'Tu gestión', data: game.history.map(x => M(x.margAcum)), borderColor: COL.mine, backgroundColor: 'rgba(226,113,29,0.12)', fill: true, tension: 0.25, pointRadius: 3 },
-      { label: 'Sin reaccionar', data: game.baseHistory.map(x => M(x.margAcum)), borderColor: COL.pre, borderDash: [6, 4], fill: false, tension: 0.25, pointRadius: 2 },
-    ] },
-    options: { ...baseOpts('M€'), scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }, y: { ticks: { color: '#6b7280', callback: v => '€' + v + 'M' }, grid: { color: '#e5e7eb' } } } },
-  };
-  upsert('chartGame', cfg);
-  // Reporte YTD del juego
+  // Cuadro de Geni: acumulado a este mes, por grupo de producción y UGE
   const monthlyIng = game.history.map(x => x.ingTot);
+  renderGameSnapshot(monthlyIng);
+  // Reporte YTD del juego (histórico mes a mes)
   renderGameReport(monthlyIng);
   $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Reacciona en costes (reposición, reestructuración) o ingresos (productividad, nuevos servicios); recuerda el <strong>efecto diferido</strong>. ` +
     (fin ? `<strong>Ejercicio cerrado.</strong> Resultado: ${fmtM(last.margAcum)} (${ventaja >= 0 ? '+' : ''}${fmtM(ventaja)} frente a no reaccionar).` : `Quedan ${GAME_CONFIG.nMeses - game.month} meses.`);
+}
+// Cuadro «Geni»: snapshot del acumulado a este mes, desglosado por grupo de
+// producción con sus UGEs anidadas (no solo UGEs) + total TLS.
+function renderGameSnapshot(monthlyIng) {
+  const rep = buildReporteGame(monthlyIng, game.noise, game.month);
+  const k = rep.meses.length - 1;   // último mes = acumulado a hoy
+  if (k < 0) { $('gSnapshot').innerHTML = ''; return; }
+  let head = '<thead><tr class="months"><th class="col-name"></th>'
+    + `<th colspan="3">Acumulado a ${rep.meses[k]}</th></tr>`
+    + '<tr><th class="col-name">GRUPO DE PRODUCCIÓN / UGE</th>'
+    + '<th>Ingreso Neto YTD</th><th>Presupuesto Producción - FY26</th><th>% Cumplimiento</th></tr></thead>';
+  const rowHtml = (r, cls) => `<tr class="${cls}"><td class="col-name">${r.grupo || r.uge}</td>`
+    + numCell(r.ing[k], 'mstart') + numCell(r.bud[k]) + pctCell(r.pct[k]) + '</tr>';
+  const spacer = '<tr class="spacer"><td colspan="4"></td></tr>';
+  let body = '<tbody>';
+  rep.grupos.forEach((g, i) => {
+    if (i > 0) body += spacer;
+    body += rowHtml(g, 'grp');
+    for (const u of g.uges) body += rowHtml(u, 'uge');
+  });
+  body += spacer + rowHtml(rep.all, 'all');
+  $('gSnapshot').innerHTML = head + body + '</tbody>';
 }
 function renderGameReport(monthlyIng) {
   const rep = buildReporteGame(monthlyIng, game.noise, game.month);
