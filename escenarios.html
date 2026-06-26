@@ -172,6 +172,11 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     .lever-val { font-size: 13px; font-weight: 700; color: var(--accent); }
     .lever-eff { font-size: 11px; color: var(--muted); margin-top: 5px; }
     .lever-lag { font-size: 10px; color: var(--muted); font-style: italic; }
+    .lever-opts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .lopt { flex: 1 1 auto; min-width: 120px; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--border);
+            background: #fff; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; text-align: center; }
+    .lopt:hover { border-color: var(--accent); }
+    .lopt.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .kpi-acc .kpi-val { color: var(--accent); }
 
     /* ── CUESTIONARIO ── */
@@ -393,8 +398,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <span class="field-label">Rotación realizada</span>
           <span class="field-val" id="v_rotacion">70%</span>
         </div>
-        <input type="range" id="rotacion" min="0" max="70" step="1" value="70" oninput="onInput()">
-        <div class="field-desc">Fracción de la rotación esperada que se materializa (≤70%; baja si el mercado crece). [C22]</div>
+        <input type="range" id="rotacion" min="0" max="100" step="1" value="70" oninput="onInput()">
+        <div class="field-desc">Fracción de la rotación esperada que se materializa (0–100%; 70% es nuestra estimación, editable). [C22]</div>
       </div>
 
       <div class="field">
@@ -413,6 +418,17 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         </div>
         <input type="range" id="restruct" min="0" max="100" step="5" value="0" oninput="onInput()">
         <div class="field-desc">Ajuste proactivo del excedente de plantilla que genera la productividad IA. [C41]</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Inversión en IA (coste anual)</span>
+          <span class="field-val" id="v_inversionIA">€0,0M</span>
+        </div>
+        <input type="number" id="inversionIA" min="0" step="100" value="0" oninput="onInput()"
+               style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <div class="field-desc">Coste real de la inversión en IA, en <strong>miles de €/año</strong>. Resta directamente al margen
+          (margen = ingresos − coste de plantilla − inversión IA). Editable y verificable.</div>
       </div>
     </div>
 
@@ -530,8 +546,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
     <div class="game-grid">
       <div class="card">
-        <h3>Reacciona: ajusta tus palancas</h3>
-        <div class="csub">Los cambios surten efecto con retardo (no este mismo mes).</div>
+        <h3>Reacciona: 2 decisiones rápidas</h3>
+        <div class="csub">Despidos y reposición. Los cambios surten efecto con retardo (no este mismo mes).</div>
         <div id="gLevers"></div>
       </div>
       <div class="card" style="padding:0; overflow:hidden;">
@@ -646,13 +662,11 @@ let MODEL_CONFIG = {
    un multiplicador que escala prodPwC y nuevaDem (ver gate).
    ════════════════════════════════════════════════════════════════════════════ */
 const QUESTIONNAIRE_CONFIG = {
-  // gate de inversión: multiplicador = base + slope × intensidadInversión
-  gate: { base: 0.3, slope: 0.7, escala: ['prodPwC', 'nuevaDem'] },
   // La rotación realizada se amortigua con la productividad del mercado:
   // rotacion = base × (1 − dampen × intensidad(prodC)).
   rotacionDamp: 0.4,
-  // V2 (desactivado): la inversión pasará a restar margen como coste real.
-  costeIA: { activo: false, importe: 0, _nota: 'Placeholder para el coste de IA en V2.' },
+  // Inversión en IA: ya no es un "gate" opaco. Es un coste real editable (campo
+  // «Inversión en IA») que resta directamente al margen post-IA. Verificable.
   criterios: [
     { id: 'A', titulo: 'Productividad propia', desc: '¿Cuánta eficiencia capturas tú con la IA?',
       slider: 'prodPwC', min: 2, max: 3, preguntas: [
@@ -696,8 +710,8 @@ const QUESTIONNAIRE_CONFIG = {
           'Parte relevante commoditizable',
           'Cartera muy commoditizable / volumen' ] },
       ] },
-    { id: 'ROT', titulo: 'Rotación', desc: 'Rotación esperada de plantilla. Se materializa como máximo al 70% de lo previsto y baja si el mercado crece.',
-      slider: 'rotacion', min: 40, max: 70, preguntas: [
+    { id: 'ROT', titulo: 'Rotación', desc: 'Rotación esperada de plantilla. 70% es nuestra estimación de cuánto se materializa, pero es editable (0–100%) y baja si el mercado crece.',
+      slider: 'rotacion', min: 40, max: 100, preguntas: [
         { id: 'R1', texto: 'Tensión del mercado laboral (oportunidades fuera)', peso: 0.6, opciones: [
           'Mercado frío, pocas salidas', 'Moderado', 'Activo', 'Muy activo, fuga de talento' ] },
         { id: 'R2', texto: 'Atractivo y retención de la firma', peso: 0.4, opciones: [
@@ -720,20 +734,6 @@ const QUESTIONNAIRE_CONFIG = {
         { id: 'S2', texto: 'Velocidad del ajuste', peso: 0.4, opciones: [
           'No aplica', 'Muy gradual (>3 años)', 'Medio (1–3 años)', 'Rápido (<1 año)' ] },
       ] },
-    { id: 'F', titulo: 'Inversión en IA', desc: 'Condiciona cuánto retorno puedes capturar de forma creíble (escala la productividad y los nuevos servicios).',
-      tipo: 'gate', preguntas: [
-        { id: 'F1', texto: 'Tecnología (licencias, plataformas, infraestructura, datos)', peso: 0.4, opciones: [
-          'Sin presupuesto dedicado',
-          'Gasto puntual en herramientas',
-          'Presupuesto recurrente en plataformas/datos',
-          'Inversión estratégica sostenida (plataformas propias/integración profunda)' ] },
-        { id: 'F2', texto: 'Equipo (talento dedicado a IA)', peso: 0.3, opciones: [
-          'Nadie dedicado', 'Champions a tiempo parcial', 'Equipo/función de IA dedicada',
-          'Capacidad multidisciplinar (data+producto+negocio) escalada' ] },
-        { id: 'F3', texto: 'Tiempo de desarrollo (esfuerzo de implementación/rediseño)', peso: 0.3, opciones: [
-          'Sin tiempo asignado', 'Iniciativas en los huecos', 'Roadmap con horas y sponsor',
-          'Programa con dedicación significativa y objetivos' ] },
-      ] },
   ],
 };
 
@@ -745,13 +745,13 @@ const QUESTIONNAIRE_CONFIG = {
      prodC      [C16] productividad mercado/competencia
      internaliz [C19] internalización de clientes
      nuevaDem   [C20] nueva demanda por servicios nuevos
-     rotacion   [C22] rotación realizada (fracción de la esperada, ≤0,7)
+     rotacion   [C22] rotación realizada (fracción de la esperada, 0–1; 0,7 por defecto)
      reposicion [C39] % de reposición de las salidas (decisión empresarial)
      restruct   [C41] % de reestructuración proactiva por IA (avanzado)
    ════════════════════════════════════════════════════════════════════════════ */
 function runModel(inputs, cfg = MODEL_CONFIG) {
   const { prodPwC = 0, prodC = 0, internaliz = 0, nuevaDem = 0,
-          rotacion = 0, reposicion = 0, restruct = 0 } = inputs;
+          rotacion = 0, reposicion = 0, restruct = 0, inversionIA = 0 } = inputs;
   const C6 = cfg.mercado.precio;
   const { Eo, EPwC, Ed } = cfg.elasticidades;
   const { AoPwC: G5, AoC: G6, Ad: G7 } = cfg.constantes;
@@ -807,7 +807,8 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
   // ── Resultados ──
   const ingPre = G4 * G8, ingPost = I4 * I8;
   const costPre = Q18, costPost = T39;
-  const margPre = ingPre - costPre, margPost = ingPost - costPost;
+  // La inversión en IA es un coste real explícito que resta al margen post-IA.
+  const margPre = ingPre - costPre, margPost = ingPost - costPost - inversionIA;
   const sharePre = G8 / G10, sharePost = I8 / I10;
   const ftePre = P18, ftePost = S39;
   const horasPre = T18 / 1000, horasPost = U39 / 1000;
@@ -826,6 +827,7 @@ function runModel(inputs, cfg = MODEL_CONFIG) {
     costPre, costPost, costDif: costPost - costPre,
     margPre, margPost, margDif: margPost - margPre,
     pctMargPre: margPre / ingPre, pctMargPost: margPost / ingPost,
+    inversionIA,
     ftePre, ftePost, fteDif: ftePost - ftePre,
     sharePre, sharePost, shareDif: sharePost - sharePre,
     horasPre, horasPost, horasDif: horasPost - horasPre,
@@ -883,9 +885,9 @@ function aggregate(rows, nM) {
 const GAME_CONFIG = {
   modoDesviacion: 'determinista',                 // 'determinista' | 'aleatorio'
   // Retardo (meses) hasta que cada palanca surte pleno efecto. Editable.
-  lags: { reposicion: 1, restruct: 2, prodPwC: 3, nuevaDem: 4 },
-  // Palancas ajustables durante el ejercicio (las demás quedan fijas).
-  palancas: ['reposicion', 'restruct', 'prodPwC', 'nuevaDem'],
+  lags: { restruct: 2, reposicion: 1 },
+  // Solo 2 decisiones rápidas durante el ejercicio (las demás quedan fijas).
+  palancas: ['restruct', 'reposicion'],
   nMeses: 12,
 };
 
@@ -922,7 +924,8 @@ function runMonth(m, timeline, baseInputs, cfg = MODEL_CONFIG) {
   const annual = runModel(effectiveInputs(m, timeline, baseInputs), cfg);
   const per = cfg.reporte.periodificacion[m - 1];
   const ingMes = annual.ingPost * per;
-  const costMes = annual.costPost / GAME_CONFIG.nMeses;
+  // Coste mensual = plantilla + inversión IA (repartida lineal en el año).
+  const costMes = (annual.costPost + annual.inversionIA) / GAME_CONFIG.nMeses;
   // Tarifa neta = ingresos / horas (€/hora), no el precio por proyecto.
   const tarifaNeta = annual.horasPost ? annual.ingPost / annual.horasPost : 0;
   return { ingMes, costMes, margMes: ingMes - costMes, tarifa: annual.precioPost, tarifaNeta, fte: annual.ftePost, ingTot: annual.ingPost, annual };
@@ -999,9 +1002,9 @@ function advanceMonth() {
 
 // Presets conservadores año-1 (valores de slider, en % o puntos)
 const PRESETS = {
-  nada:        { prodPwC: 0,   prodC: 3, nuevaDem: 0,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0 },
-  conservador: { prodPwC: 2.5, prodC: 3, nuevaDem: 3,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0 },
-  ambicioso:   { prodPwC: 3,   prodC: 4, nuevaDem: 3.5, intern: 2.5, rotacion: 55, reposicion: 50, restruct: 30 },
+  nada:        { prodPwC: 0,   prodC: 3, nuevaDem: 0,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0,  inversionIA: 0 },
+  conservador: { prodPwC: 2.5, prodC: 3, nuevaDem: 3,   intern: 3, rotacion: 70, reposicion: 0,  restruct: 0,  inversionIA: 0 },
+  ambicioso:   { prodPwC: 3,   prodC: 4, nuevaDem: 3.5, intern: 2.5, rotacion: 55, reposicion: 50, restruct: 30, inversionIA: 0 },
 };
 const SLIDERS = ['prodPwC', 'prodC', 'nuevaDem', 'intern', 'rotacion', 'reposicion', 'restruct'];
 
@@ -1021,12 +1024,14 @@ function readInputs() {
     rotacion: +$('rotacion').value / 100,   // [C22]
     reposicion: +$('reposicion').value / 100, // [C39]
     restruct: +$('restruct').value / 100,   // [C41] reestructuración proactiva
+    inversionIA: +$('inversionIA').value || 0,  // coste real IA (miles €/año)
   };
 }
 
 function applyPreset(name) {
   const p = PRESETS[name];
   SLIDERS.forEach(s => $(s).value = p[s]);
+  $('inversionIA').value = p.inversionIA ?? 0;
   document.querySelectorAll('.preset-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.preset === name));
   onInput(true);
@@ -1043,6 +1048,7 @@ function onInput(fromPreset = false) {
   $('v_rotacion').textContent = $('rotacion').value + '%';
   $('v_reposicion').textContent = $('reposicion').value + '%';
   $('v_restruct').textContent = $('restruct').value + '%';
+  $('v_inversionIA').textContent = fmtM(+$('inversionIA').value || 0);
 
   if (!fromPreset) document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 
@@ -1050,7 +1056,7 @@ function onInput(fromPreset = false) {
 
   const mine = runModel(inputs);
   // "No hacer nada": tú a 0, pero el mercado y la rotación siguen su curso
-  const nada = runModel({ ...inputs, prodPwC: 0, nuevaDem: 0, reposicion: 0, restruct: 0 });
+  const nada = runModel({ ...inputs, prodPwC: 0, nuevaDem: 0, reposicion: 0, restruct: 0, inversionIA: 0 });
   const pre = mine.margPre;
 
   // ── Coste de no actuar (margen anual perdido vs no hacer nada) ──
@@ -1217,6 +1223,7 @@ function renderVerify(r) {
   h += param('Escenario: rotación realizada', 'C22', pc(inp.rotacion));
   h += param('Escenario: reposición', 'C39', pc(inp.reposicion));
   h += param('Escenario: reestructuración IA', 'C41', pc(inp.restruct));
+  h += param('Escenario: inversión IA (coste anual, miles €)', '—', n(inp.inversionIA, 0));
 
   h += sec('Modelo (Q = A · P^E)');
   h += row('Precio (P)', 'G4 / I4', n(r.precioPre, 4), n(r.precioPost, 4));
@@ -1228,8 +1235,9 @@ function renderVerify(r) {
   h += row('Tamaño del mercado', 'F24 / G24', n(r.qDemPre * r.precioPre), n(r.qDemPost * r.precioPost));
   h += row('Cuota de mercado', 'F25 / G25', pc(r.sharePre), pc(r.sharePost));
   h += row('Ingresos', 'F26 / G26', n(r.ingPre), n(r.ingPost));
-  h += row('Costes', 'F27 / G27', n(r.costPre), n(r.costPost));
-  h += row('Margen', 'F28 / G28', n(r.margPre), n(r.margPost));
+  h += row('Costes de plantilla', 'F27 / G27', n(r.costPre), n(r.costPost));
+  h += row('(−) Inversión en IA (coste)', '—', '—', n(r.inversionIA));
+  h += row('Margen  =  ingresos − plantilla − inversión IA', 'F28 / G28', n(r.margPre), n(r.margPost));
   h += row('% Margen', 'F29 / G29', pc(r.pctMargPre), pc(r.pctMargPost));
   h += row('FTE', 'P18 / S39', n(r.ftePre), n(r.ftePost));
   h += row('Horas (miles)', 'F32 / G32', n(r.horasPre), n(r.horasPost));
@@ -1390,11 +1398,6 @@ function critIntensity(crit) {
 function critValue(crit) {           // valor% para criterios con slider (A–E)
   return crit.min + critIntensity(crit) * (crit.max - crit.min);
 }
-function gateMultiplier() {           // F → multiplicador
-  const F = QC.criterios.find(c => c.tipo === 'gate');
-  return QC.gate.base + QC.gate.slope * critIntensity(F);
-}
-
 function selectOpt(critId, qId, idx) {
   (quizAnswers[critId] = quizAnswers[critId] || {})[qId] = idx;
   renderQuiz();
@@ -1453,13 +1456,12 @@ function setSlider(id, val) {
   el.value = v;
 }
 function applyQuizToModel() {
-  const g = gateMultiplier();
   const B = QC.criterios.find(c => c.id === 'B');
   const prodCIntensity = B ? critIntensity(B) : 0;   // 0..1
   for (const crit of QC.criterios) {
     if (crit.tipo === 'gate' || !crit.slider) continue;
     let v = critValue(crit);
-    if (QC.gate.escala.includes(crit.slider)) v *= g;          // gate de inversión
+    // La productividad propia y los nuevos servicios se aplican DIRECTOS (sin gate de inversión).
     if (crit.slider === 'rotacion') v *= (1 - QC.rotacionDamp * prodCIntensity); // amortiguación de mercado
     setSlider(crit.slider, v);
   }
@@ -1486,12 +1488,12 @@ function openQuiz() {
   window.scrollTo({ top: 0 });
 }
 
-/* ── Render del modo ejercicio ── */
-const LEVER_META = {
-  reposicion: { label: 'Reposición de bajas', tipo: 'coste', max: 100, step: 5, dec: 0 },
-  restruct:   { label: 'Reestructuración extra', tipo: 'coste', max: 100, step: 5, dec: 0 },
-  prodPwC:    { label: 'Productividad propia', tipo: 'ingreso', max: 20, step: 0.5, dec: 1 },
-  nuevaDem:   { label: 'Nuevos servicios', tipo: 'ingreso', max: 20, step: 0.5, dec: 1 },
+/* ── Render del modo ejercicio: 2 decisiones rápidas por opciones ── */
+const LEVER_OPTIONS = {
+  restruct: { label: 'Despidos', tipo: 'reestructuración del excedente',
+    opciones: [ { t: 'Ninguno', v: 0 }, { t: 'La mitad', v: 0.5 }, { t: 'Todo el personal afectado', v: 1 } ] },
+  reposicion: { label: 'Reposición de bajas', tipo: 'cobertura de la rotación',
+    opciones: [ { t: 'Detener completamente', v: 0 }, { t: 'Reducir a la mitad', v: 0.5 } ] },
 };
 function leverTarget(lever) {  // último valor decidido (o base), en fracción
   const decs = game.timeline.filter(d => d.lever === lever);
@@ -1500,22 +1502,21 @@ function leverTarget(lever) {  // último valor decidido (o base), en fracción
 function renderLevers() {
   let h = '';
   for (const lever of GAME_CONFIG.palancas) {
-    const meta = LEVER_META[lever], lag = GAME_CONFIG.lags[lever];
-    const tgt = leverTarget(lever) * 100, eff = effectiveLever(lever, game.month, game.timeline, game.baseInputs) * 100;
+    const cfg = LEVER_OPTIONS[lever], lag = GAME_CONFIG.lags[lever];
+    const tgt = leverTarget(lever), eff = effectiveLever(lever, game.month, game.timeline, game.baseInputs) * 100;
+    const opts = cfg.opciones.map(o =>
+      `<button class="lopt${Math.abs(o.v - tgt) < 1e-9 ? ' active' : ''}" onclick="onLeverPick('${lever}', ${o.v})">${o.t}</button>`).join('');
     h += `<div class="lever">
-      <div class="lever-head"><span class="lever-name">${meta.label} <span style="color:var(--muted);font-weight:400">· ${meta.tipo}</span></span><span class="lever-val" id="lvval_${lever}">${tgt.toFixed(meta.dec)}%</span></div>
-      <input type="range" id="lev_${lever}" min="0" max="${meta.max}" step="${meta.step}" value="${tgt}" oninput="onLeverChange('${lever}')">
-      <div class="lever-eff" id="lveff_${lever}">Efectivo este mes: ${eff.toFixed(meta.dec)}% · <span class="lever-lag">efecto pleno en ~${lag} ${lag === 1 ? 'mes' : 'meses'}</span></div>
+      <div class="lever-head"><span class="lever-name">${cfg.label} <span style="color:var(--muted);font-weight:400">· ${cfg.tipo}</span></span></div>
+      <div class="lever-opts">${opts}</div>
+      <div class="lever-eff" id="lveff_${lever}">Efectivo este mes: ${eff.toFixed(0)}% · <span class="lever-lag">efecto pleno en ~${lag} ${lag === 1 ? 'mes' : 'meses'}</span></div>
     </div>`;
   }
   $('gLevers').innerHTML = h;
 }
-function onLeverChange(lever) {
-  const meta = LEVER_META[lever], v = +$('lev_' + lever).value;
-  $('lvval_' + lever).textContent = v.toFixed(meta.dec) + '%';
-  setDecision(lever, v / 100);   // recompute + renderGameOutputs
-  const eff = effectiveLever(lever, game.month, game.timeline, game.baseInputs) * 100;
-  $('lveff_' + lever).innerHTML = `Efectivo este mes: ${eff.toFixed(meta.dec)}% · <span class="lever-lag">efecto pleno en ~${GAME_CONFIG.lags[lever]} ${GAME_CONFIG.lags[lever] === 1 ? 'mes' : 'meses'}</span>`;
+function onLeverPick(lever, value) {
+  setDecision(lever, value);   // registra la decisión + recompute + renderGameOutputs
+  renderLevers();              // refresca la opción activa y los valores efectivos
 }
 
 function renderGameOutputs() {
@@ -1542,7 +1543,7 @@ function renderGameOutputs() {
   renderGameSnapshot(monthlyIng);
   // Gráfica de evolución de ingreso y margen acumulados (como en la versión anterior)
   renderGameEvo();
-  $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Reacciona en costes (reposición, reestructuración) o ingresos (productividad, nuevos servicios); recuerda el <strong>efecto diferido</strong>. ` +
+  $('gNote').innerHTML = `Marcador = <strong>margen acumulado</strong>. Dos decisiones de coste: <strong>despidos</strong> (reestructuración del excedente) y <strong>reposición</strong> de bajas; recuerda el <strong>efecto diferido</strong>. ` +
     (fin ? `<strong>Ejercicio cerrado.</strong> Resultado: ${fmtM(last.margAcum)} (${ventaja >= 0 ? '+' : ''}${fmtM(ventaja)} frente a no reaccionar).` : `Quedan ${GAME_CONFIG.nMeses - game.month} meses.`);
 }
 // Cuadro «Geni»: snapshot del acumulado a este mes, desglosado por grupo de
