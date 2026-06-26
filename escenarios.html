@@ -529,47 +529,55 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
 <!-- ══ MODO EJERCICIO (juego mensual) ══ -->
 <section id="gameView" style="display:none">
-  <div class="game-wrap">
-    <div class="game-head">
-      <div>
-        <div class="game-title">Ejercicio FY26 — el consejo decide y vemos pasar los meses</div>
-        <div class="game-month">Cierre a <strong id="gMonth">—</strong> · mes <span id="gMonthN">0</span> de 12</div>
-      </div>
-      <div class="game-actions">
-        <button class="qbtn primary" id="gAdvance" onclick="advanceMonth()">Avanzar mes ▶</button>
-        <button class="qbtn ghost" onclick="resetGame()">↺ Reiniciar</button>
-        <button class="qbtn ghost" onclick="openQuiz()">Editar decisión inicial</button>
-        <button class="qbtn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙</button>
-      </div>
+  <!-- Barra superior: objetivo + marcador de turno -->
+  <div class="gx2-bar">
+    <div class="gx2-brand">FY27 · <b>PLANIFICACIÓN</b></div>
+    <div class="gx2-turn" id="gTurn"></div>
+    <div class="gx2-obj"><div class="l">Objetivo del ejercicio</div><div class="v">168,5 M€</div></div>
+  </div>
+
+  <!-- PANTALLA 1: DECISIONES (sin resultados → factor sorpresa) -->
+  <div id="gDecide">
+    <div class="gx2-h">
+      <div class="gx2-title">Mes <span id="gMonthN2">1</span> · <span id="gMonthName">—</span> — tus decisiones</div>
+      <div class="gx2-sub">Decide y cierra el mes. El resultado se descubre después.</div>
     </div>
+    <div id="gLevers"></div>
+    <div class="gx2-actions">
+      <button class="gx2-btn primary" id="gAdvance" onclick="closeMonth()">Cerrar el mes ▶</button>
+      <button class="gx2-btn ghost" onclick="resetGame()">↺ Reiniciar</button>
+      <button class="gx2-btn ghost" onclick="openQuiz()">Editar decisión inicial</button>
+      <button class="gx2-btn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙ Analista</button>
+    </div>
+  </div>
 
-    <div class="kpi-grid" id="gScore"></div>
-
-    <div class="game-grid">
-      <div class="card">
-        <h3>Reacciona: decisiones rápidas</h3>
-        <div class="csub">Despidos, reposición e inversión en IA. Los cambios surten efecto con retardo (no este mismo mes).</div>
-        <div id="gLevers"></div>
-      </div>
-      <div class="card" style="padding:0; overflow:hidden;">
-        <div style="padding:16px 16px 4px"><h3 style="margin:0">Cuadro de seguimiento — acumulado a este mes</h3>
-        <div class="csub">Ingreso neto YTD por grupo de producción y UGE (formato «mail de Geni»).</div></div>
+  <!-- PANTALLA 2: RESULTADOS + bronca del CEO (tras la cutscene) -->
+  <div id="gResults" hidden>
+    <div class="gx2-h">
+      <div class="gx2-title">Resultados — cierre a <span id="gMonth">—</span> · mes <span id="gMonthN">0</span>/12</div>
+    </div>
+    <div class="gx2-kpis kpi-grid" id="gScore"></div>
+    <div class="gx2-grid">
+      <div class="gx2-card">
+        <div class="gx2-card-h">Cuadro de seguimiento — acumulado a este mes</div>
         <div class="reporte-scroll"><table class="reporte-table" id="gSnapshot"></table></div>
       </div>
+      <div class="gx2-card">
+        <div class="gx2-card-h">Evolución — ingreso y margen acumulados (M€)</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="chartGameEvo"></canvas></div>
+      </div>
     </div>
-
-    <div class="section-title">Evolución mensual — ingreso y margen acumulados</div>
-    <div class="card">
-      <div class="csub">Ingreso y margen acumulados YTD a lo largo del ejercicio (millones de €).</div>
-      <div class="chart-wrap" style="height:320px"><canvas id="chartGameEvo"></canvas></div>
+    <div class="gx2-actions">
+      <button class="gx2-btn primary" id="gNext" onclick="toDecide()">Tomar decisiones ▶</button>
+      <button class="gx2-btn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙ Analista</button>
     </div>
     <div class="legend-note" id="gNote"></div>
   </div>
 </section>
 
 <footer>
-  Escenarios IA · <strong>v3.0</strong> (build 2026-06-25) · Ejercicio mensual jugable (decisiones con efecto diferido) sobre el modelo v3.
-  Sustituye los supuestos vía «⚙ Datos» para conectar tus datos reales.
+  Escenarios IA · <strong>v4.0</strong> · Ejercicio en formato juego: intro, decisiones por turnos y reacción del CEO, sobre el modelo v3.
+  Modo analista (tecla A) para verificar cifras. Sustituye los supuestos vía «⚙ Datos» para conectar tus datos reales.
 </footer>
 
 <script>
@@ -1003,7 +1011,9 @@ function startGame() {
   game.history = [];
   game.baseHistory = [];
   game.noise = gameNoise();
-  advanceMonth();
+  advanceMonth();      // computa el mes 1
+  showGameView();      // muestra el ejercicio (tema claro)
+  resolveMonth();      // cutscene del CEO (mes 1) → pantalla de resultados
 }
 function resetGame() { startGame(); }
 
@@ -1031,7 +1041,49 @@ function advanceMonth() {
   game.month++;
   recomputeHistory();
   if (typeof renderLevers === 'function') renderLevers();   // refresca valores efectivos
-  if (window.GAMEUX) GAMEUX.ceoReact();                     // el CEO reacciona al mes (capa de juego)
+}
+
+/* ── Bucle de turno: Decisiones → (cerrar) → cutscene CEO → Resultados ──
+   Dos pantallas separadas (decisiones vs resultados+bronca); el CEO reacciona
+   a pantalla completa entre ambas, que es donde su pixel encaja sin chocar. */
+function closeMonth() {
+  if (game.month >= GAME_CONFIG.nMeses) return;   // ejercicio ya cerrado
+  advanceMonth();
+  resolveMonth();
+}
+function resolveMonth() {
+  renderGameOutputs();   // prepara la pantalla de resultados (aún oculta)
+  if (window.GAMEUX) GAMEUX.ceoReact(showResults);   // cutscene CEO → al cerrarla, resultados
+  else showResults();
+}
+function toDecide() { showDecide(); }
+function showDecide() {
+  $('gDecide').hidden = false; $('gResults').hidden = true;
+  renderLevers(); renderTurn(); updateDecideHeader();
+  window.scrollTo({ top: 0 });
+}
+function showResults() {
+  $('gDecide').hidden = true; $('gResults').hidden = false;
+  renderGameOutputs(); renderTurn();
+  Object.values(charts).forEach(c => { try { c.resize(); } catch (e) {} });
+  window.scrollTo({ top: 0 });
+}
+// Marcador de turno (J A S O N D …) con el mes actual resaltado.
+function renderTurn() {
+  if (!$('gTurn')) return;
+  const meses = MODEL_CONFIG.reporte.meses;
+  $('gTurn').innerHTML = meses.map((m, i) => {
+    const cls = (i + 1) < game.month ? 'dn' : ((i + 1) === game.month ? 'on' : '');
+    return `<span class="m ${cls}" title="${m}">${m[0]}</span>`;
+  }).join('');
+}
+function updateDecideHeader() {
+  const meses = MODEL_CONFIG.reporte.meses;
+  $('gMonthN2').textContent = game.month;
+  $('gMonthName').textContent = meses[game.month - 1] || '—';
+  const fin = game.month >= GAME_CONFIG.nMeses;
+  $('gAdvance').disabled = fin;
+  $('gAdvance').textContent = fin ? 'Ejercicio cerrado ✓' : 'Cerrar el mes ▶';
 }
 
 
@@ -1524,8 +1576,8 @@ function showGameView() {  // el ejercicio mensual (el reveal por defecto)
   window.scrollTo({ top: 0 });
 }
 // El reveal tras el cuestionario es el JUEGO (intriga: no se muestra el anual completo).
-function finishQuiz() { applyQuizToModel(); startGame(); showGameView(); }
-function skipQuiz() { startGame(); showGameView(); }   // arranca con el preset de ejemplo
+function finishQuiz() { applyQuizToModel(); startGame(); }   // startGame ya muestra el juego
+function skipQuiz() { startGame(); }                          // arranca con el preset de ejemplo
 function openQuiz() {
   hideAll(); $('quiz').style.display = 'flex';
   renderQuiz();
@@ -1538,7 +1590,7 @@ const LEVER_OPTIONS = {
     opciones: [ { t: 'Ninguno', v: 0 }, { t: 'La mitad', v: 0.5 }, { t: 'Todo el personal afectado', v: 1 } ] },
   reposicion: { label: 'Reposición de bajas', tipo: 'cobertura de la rotación',
     opciones: [ { t: 'Detener completamente', v: 0 }, { t: 'Reducir a la mitad', v: 0.5 } ] },
-  inversionIA: { label: 'Inversión en IA', tipo: 'coste anual · sube productividad', kind: 'invest',
+  inversionIA: { label: 'Inversión en IA', tipo: 'coste anual', kind: 'invest',
     opciones: [ { t: 'Mantener (1 M€)', v: 1000 }, { t: '1,5 M€', v: 1500 }, { t: '2 M€', v: 2000 },
                 { t: '2,5 M€', v: 2500 }, { t: '3 M€', v: 3000 } ] },
 };
@@ -1554,7 +1606,7 @@ function renderLevers() {
     const opts = cfg.opciones.map(o =>
       `<button class="lopt${Math.abs(o.v - tgt) < 1e-9 ? ' active' : ''}" onclick="onLeverPick('${lever}', ${o.v})">${o.t}</button>`).join('');
     const effTxt = invest
-      ? `Efectivo este mes: ${fmtM(effRaw)} (productividad +${(aiProdBonus(effRaw) * 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%)`
+      ? `Efectivo este mes: ${fmtM(effRaw)}`
       : `Efectivo este mes: ${(effRaw * 100).toFixed(0)}%`;
     h += `<div class="lever">
       <div class="lever-head"><span class="lever-name">${cfg.label} <span style="color:var(--muted);font-weight:400">· ${cfg.tipo}</span></span></div>
@@ -1576,8 +1628,10 @@ function renderGameOutputs() {
   $('gMonth').textContent = meses[game.month - 1];
   $('gMonthN').textContent = game.month;
   const fin = game.month >= GAME_CONFIG.nMeses;
-  $('gAdvance').disabled = fin;
-  $('gAdvance').textContent = fin ? 'Ejercicio cerrado ✓' : 'Avanzar mes ▶';
+  if ($('gNext')) {   // botón de la pantalla de resultados
+    $('gNext').disabled = fin;
+    $('gNext').textContent = fin ? 'Ejercicio cerrado ✓' : 'Tomar decisiones ▶';
+  }
   // Scoreboard
   const ingYTD = game.history.reduce((s, x) => s + x.ingMes, 0);
   let budYTD = 0; for (let m = 0; m < game.month; m++) budYTD += bud * per[m];
@@ -1780,6 +1834,7 @@ renderQuiz();
 <style id="gameux-style">
   @import url('https://fonts.googleapis.com/css2?family=Chewy&family=Comic+Neue:wght@700&display=swap');
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap');
 
   /* ── Overlays de cutscene ── */
   .gx-overlay { position: fixed; inset: 0; background: #0f172a; display: flex; align-items: center;
@@ -1821,33 +1876,55 @@ renderQuiz();
     image-rendering: pixelated; z-index: 2; }
 
   /* ── Beat mensual del CEO (más pequeño, sobre el juego) ── */
-  #ceoBeat { background: rgba(8,12,24,0.82); }
-  #ceoBeat .gx-stage { width: 360px; height: 360px; max-width: 86vw; max-height: 52vh; }
-  #ceoBeat .gx-bubble { right: -130px; top: -28px; width: 320px; height: 230px; transform: scale(0.92); }
-  @media (max-width: 1180px) { #ceoBeat .gx-bubble { right: 0; top: -210px; width: min(330px,80vw); } }
-  .cb-tag { position: absolute; top: -30px; left: 0; font-family: "Press Start 2P",monospace; font-size: 11px;
-    color: #e2711d; letter-spacing: 1px; }
+  /* Beat mensual del CEO = cutscene pixel a PANTALLA COMPLETA (como la intro) */
+  #ceoBeat { background: #0f172a; }
+  .cb-tag { position: absolute; top: -34px; left: 0; font-family: "Press Start 2P", monospace; font-size: 12px;
+    color: #fbbf24; letter-spacing: 1px; text-shadow: 0 2px 0 #0008; }
 
-  /* ── Reskin retro: cabina oscura, pero tarjetas/tablas CLARAS y legibles ── */
-  #gameView.gx-retro { background:
-      radial-gradient(circle at 50% -10%, #1b2440 0%, #0c1020 60%, #080b16 100%); }
-  /* Texto oscuro dentro de tarjetas/KPIs (sobre fondo claro) — evita texto invisible */
-  #gameView.gx-retro .card, #gameView.gx-retro .kpi { color: var(--text); }
-  /* Cabecera = barra oscura con titulares pixel claros */
-  #gameView.gx-retro .game-head { background: #0c1330; border-color: #2b3a66; }
-  #gameView.gx-retro .game-title { font-family: "Press Start 2P", monospace; font-size: 15px; line-height: 1.5;
-    letter-spacing: 0.5px; color: #fde68a; text-shadow: 0 2px 0 #00000088; }
-  #gameView.gx-retro .game-month { color: #93c5fd; }
-  #gameView.gx-retro .game-month strong { color: #dbeafe; }
-  #gameView.gx-retro .game-actions .qbtn.ghost { color: #cbd5e1; border-color: #3b4a6b; }
-  #gameView.gx-retro .game-actions .qbtn.ghost:hover { color: #fff; border-color: #93c5fd; }
-  /* Títulos de sección: pixel claro sobre el fondo oscuro de la página */
-  #gameView.gx-retro .section-title { font-family: "Press Start 2P", monospace; font-size: 12px;
-    letter-spacing: 0.5px; color: #fde68a; text-shadow: 0 2px 0 #00000088; }
-  #gameView.gx-retro .card { border: 2px solid #2b3a66; box-shadow: 0 0 0 1px #0a0f1f, 0 10px 24px rgba(0,0,0,0.45); }
-  #gameView.gx-retro .card h3 { font-family: "Press Start 2P", monospace; font-size: 11px; color: #1f2937; }
-  #gameView.gx-retro .kpi { border: 1px solid #2b3a66; }
-  #gameView.gx-retro .qbtn.primary { font-family: "Press Start 2P", monospace; font-size: 11px; }
+  /* ───────── Tema CLARO "Sala de Mando" (estructura y colores de la maqueta A) ───────── */
+  #gameView.gx2 { background: #f4f5f7; color: var(--text); padding: 22px 26px; }
+  .gx2-bar { display: flex; align-items: center; gap: 20px; border: 1px solid #e3e6ec; background: #fff;
+    border-radius: 12px; padding: 12px 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .gx2-brand { font-weight: 800; letter-spacing: .14em; font-size: 12px; color: #8a93a6; }
+  .gx2-brand b { color: var(--accent); }
+  .gx2-turn { display: flex; gap: 5px; flex-wrap: wrap; }
+  .gx2-turn .m { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #d8dde6; display: grid;
+    place-items: center; font-size: 10px; color: #aab2c0; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .gx2-turn .m.dn { background: #eef1f5; color: #6b7280; }
+  .gx2-turn .m.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .gx2-obj { margin-left: auto; text-align: right; }
+  .gx2-obj .l { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #9099a8; }
+  .gx2-obj .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 20px; color: #1f2329; }
+  .gx2-h { margin: 18px 2px 14px; }
+  .gx2-title { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+  .gx2-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .gx2-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 16px; }
+  .gx2 .kpi { background: #fff; border: 1px solid #e3e6ec; border-radius: 12px; padding: 14px 16px;
+    position: relative; overflow: hidden; }
+  .gx2 .kpi::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+    background: linear-gradient(90deg, var(--accent), transparent); }
+  .gx2 .kpi-val { font-family: 'JetBrains Mono', monospace; }
+  .gx2-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+  .gx2-card { background: #fff; border: 1px solid #e3e6ec; border-radius: 12px; overflow: hidden; }
+  .gx2-card-h { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #7f8aa0;
+    font-weight: 700; padding: 14px 16px 8px; }
+  .gx2-card .reporte-scroll { padding: 0 4px 10px; }
+  .gx2-card .chart-wrap { padding: 6px 14px 16px; }
+  /* Decisiones = toggles tipo maqueta A */
+  .gx2 #gLevers { background: #fff; border: 1px solid #e3e6ec; border-radius: 12px; padding: 18px 18px 6px; max-width: 620px; }
+  .gx2 .lever { margin-bottom: 16px; }
+  .gx2 .lever-name { font-size: 13px; font-weight: 700; }
+  .gx2 .lopt { border: 1px solid #d8dde6; background: #f7f8fa; color: #46506a; border-radius: 9px; font-weight: 600; }
+  .gx2 .lopt:hover { border-color: var(--accent); }
+  .gx2 .lopt.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .gx2-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 18px 0 8px; }
+  .gx2-btn { padding: 11px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer;
+    border: 1px solid #d8dde6; background: #fff; color: #46506a; transition: all .15s; }
+  .gx2-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .gx2-btn.primary:hover { filter: brightness(1.06); }
+  .gx2-btn.ghost:hover { border-color: var(--accent); color: var(--text); }
+  .gx2-btn:disabled { opacity: .5; cursor: not-allowed; }
+  @media (max-width: 900px) { .gx2-kpis, .gx2-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <!-- Intro cutscene -->
@@ -2150,10 +2227,10 @@ const GAMEUX = (function () {
       'No me gusta nada lo que veo. Quiero ver decisiones, y rápido.',
     ],
   };
-  let cb = null, cbOpen = false, cbDone = false;
-  function ceoReact() {
-    if (typeof game === 'undefined' || !game.active || game.month < 1) return;
-    if ($('gameView').hidden || $('gameView').style.display === 'none') return; // no durante el arranque
+  let cb = null, cbOpen = false, cbDone = false, cbOnDone = null;
+  function ceoReact(onDone) {
+    cbOnDone = onDone || null;
+    if (typeof game === 'undefined' || !game.active || game.month < 1) { if (cbOnDone) cbOnDone(); return; }
     const R = MODEL_CONFIG.reporte, per = R.periodificacion, bud = R.presupuestoTLS;
     const last = game.history[game.history.length - 1];
     const lastB = game.baseHistory[game.baseHistory.length - 1];
@@ -2169,7 +2246,7 @@ const GAMEUX = (function () {
     cbOpen = true; cbDone = false; initAudio();
     typeOut(cb, $('cbBubble'), line, () => { cbDone = true; $('cbHint').hidden = false; });
   }
-  function closeBeat() { cbOpen = false; $('ceoBeat').hidden = true; }
+  function closeBeat() { cbOpen = false; $('ceoBeat').hidden = true; const f = cbOnDone; cbOnDone = null; if (f) f(); }
   function beatAdvance() {
     if (!cbOpen) return false;
     if (cbDone) closeBeat();   // si aún escribe, ignora (espera a terminar)
@@ -2189,6 +2266,8 @@ const GAMEUX = (function () {
     if (e.repeat) return;
     if (cbOpen) { e.preventDefault(); beatAdvance(); return; }
     if (!$('introScene').hidden) { e.preventDefault(); introAdvance(); return; }
+    // No interceptar atajos mientras se escribe en un campo (modo analista)
+    if (/^(input|textarea|select)$/i.test(e.target.tagName)) return;
     // Atajos solo durante el juego (no en cutscenes)
     const k = e.key.toLowerCase();
     if (k === 'a') { toggleAnalyst(); return; }
@@ -2206,7 +2285,7 @@ const GAMEUX = (function () {
     // Clic para avanzar cutscenes (en intro y beat); no interfiere con el juego.
     $('introScene').addEventListener('click', onClick);
     $('ceoBeat').addEventListener('click', onClick);
-    const gv = $('gameView'); if (gv) gv.classList.add('gx-retro');
+    const gv = $('gameView'); if (gv) gv.classList.add('gx2');
     startIntro();
   }
 
