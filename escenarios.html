@@ -299,6 +299,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <input type="file" accept=".json" onchange="onJsonUpload(event)" hidden></label>
       <button class="qbtn ghost" onclick="saveConfigLocal()">💾 Guardar en este navegador</button>
       <button class="qbtn ghost" onclick="clearConfigLocal()">🗑 Borrar guardado</button>
+      <button class="qbtn primary" onclick="downloadGameWithData()">📦 Descargar juego con mis datos</button>
       <button class="qbtn ghost" onclick="downloadJSON()">⬇ Descargar JSON (backup)</button>
       <button class="qbtn ghost" onclick="resetConfig()">↩ Restaurar ejemplo</button>
     </div>
@@ -1890,6 +1891,29 @@ function downloadJSON() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }
+// Exporta una copia AUTÓNOMA del HTML con los datos actuales incrustados, para
+// compartir por correo/SharePoint: quien la abra ve directamente tus cifras.
+function downloadGameWithData() {
+  // Normaliza el estado visible para que el archivo exportado abra limpio.
+  const els = ['dataPanel', 'quiz', 'appView', 'gameView'].map(id => ({ el: $(id), style: $(id).getAttribute('style') }));
+  els.forEach(o => o.el.style.display = 'none');
+  let html;
+  try { html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML; }
+  finally { els.forEach(o => o.style == null ? o.el.removeAttribute('style') : o.el.setAttribute('style', o.style)); }
+  // Construye las etiquetas por concatenación para que el CÓDIGO de esta función
+  // no contenga la etiqueta de cierre de script literal (si no, al re-serializar truncaría el HTML).
+  const OPEN = '<' + 'script id="embedded-config">', CLOSE = '<' + '/script>';
+  const tag = OPEN + 'window.EMBEDDED_CONFIG = ' + JSON.stringify(MODEL_CONFIG) + ';' + CLOSE;
+  const re = new RegExp(OPEN + '[\\s\\S]*?' + CLOSE);
+  html = html.replace(re, '');                              // quita un embedded-config previo
+  html = html.replace(/<head[^>]*>/i, m => m + '\n' + tag); // inserta el actual
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'escenarios_juego_con_datos.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  $('dataStatus').innerHTML += ' <span style="color:var(--good)">· 📦 Descargada copia autónoma con tus datos (compártela por correo/SharePoint).</span>';
+}
 function resetConfig() { applyConfig(JSON.parse(JSON.stringify(DEFAULT_MODEL_CONFIG)), 'datos de ejemplo (sintéticos)'); }
 function toggleDataPanel() {
   const p = $('dataPanel'); const show = p.style.display === 'none' || !p.style.display;
@@ -1897,9 +1921,12 @@ function toggleDataPanel() {
   if (show) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// init: precarga un ejemplo y, si hay datos guardados en este navegador, los autocarga
+// init: precarga un ejemplo. Prioridad de datos: (1) lo guardado en este navegador,
+// (2) datos incrustados si es una copia compartida, (3) ejemplo.
 applyPreset('conservador');
-loadConfigLocal();   // ← usa tus datos buenos si los guardaste antes
+if (!loadConfigLocal() && window.EMBEDDED_CONFIG) {
+  applyConfig(window.EMBEDDED_CONFIG, 'datos incrustados (copia compartida)');
+}
 renderQuiz();
 </script>
 <!-- ════════════ GAME UX (v4) — intro cutscene + CEO beats + retro reskin ════════════ -->
