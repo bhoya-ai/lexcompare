@@ -290,13 +290,16 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   <div class="data-inner">
     <div class="data-title">Origen de datos</div>
     <p class="data-desc">Sustituye las cifras de ejemplo por las tuyas. Sube tu Excel (hoja «Modelo», layout estándar)
-      o un JSON. Tras subir el Excel puedes descargar el JSON equivalente, que se genera solo.</p>
+      o un JSON. Al subirlos se <strong>guardan en este navegador</strong> y se cargan solos la próxima vez
+      (no hay que volver a subir el Excel). Puedes descargar el JSON equivalente como copia de seguridad.</p>
     <div class="data-actions">
       <label class="qbtn primary data-file">📊 Subir Excel (.xlsx)
         <input type="file" accept=".xlsx" onchange="onXlsxUpload(event)" hidden></label>
-      <button class="qbtn ghost" onclick="downloadJSON()">⬇ Descargar configuración (JSON)</button>
       <label class="qbtn ghost data-file">🧩 Cargar JSON
         <input type="file" accept=".json" onchange="onJsonUpload(event)" hidden></label>
+      <button class="qbtn ghost" onclick="saveConfigLocal()">💾 Guardar en este navegador</button>
+      <button class="qbtn ghost" onclick="clearConfigLocal()">🗑 Borrar guardado</button>
+      <button class="qbtn ghost" onclick="downloadJSON()">⬇ Descargar JSON (backup)</button>
       <button class="qbtn ghost" onclick="resetConfig()">↩ Restaurar ejemplo</button>
     </div>
     <div class="data-status" id="dataStatus"><strong>Origen activo:</strong> datos de ejemplo (sintéticos).</div>
@@ -1803,8 +1806,36 @@ function parseExcelToConfig(wb) {
   return { cfg, miss };
 }
 
+// Persistencia local de los datos buenos (este navegador/equipo).
+const LS_KEY = 'escenariosIA.datos.v1';
+let MODEL_SOURCE = 'datos de ejemplo (sintéticos)';
+function saveConfigLocal(label) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ label: label || MODEL_SOURCE, cfg: MODEL_CONFIG }));
+    $('dataStatus').innerHTML += ' <span style="color:var(--good)">· 💾 Guardado en este navegador.</span>';
+    return true;
+  } catch (e) {
+    $('dataStatus').innerHTML += ' <span style="color:var(--bad)">· No se pudo guardar (el navegador bloquea el almacenamiento).</span>';
+    return false;
+  }
+}
+function loadConfigLocal() {   // autocarga al abrir si hay datos guardados
+  try {
+    const raw = localStorage.getItem(LS_KEY); if (!raw) return false;
+    const o = JSON.parse(raw);
+    if (!o || !o.cfg || !o.cfg.mercado || !o.cfg.plantilla || !o.cfg.reporte) return false;
+    applyConfig(o.cfg, (o.label || 'datos guardados').replace(/ · 💾.*$/, '') + ' · 💾 guardado');
+    return true;
+  } catch (e) { return false; }
+}
+function clearConfigLocal() {
+  try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  resetConfig();
+  $('dataStatus').innerHTML += ' <span style="color:var(--muted)">· Guardado borrado.</span>';
+}
 function applyConfig(cfg, sourceLabel, miss = []) {
   MODEL_CONFIG = cfg;
+  MODEL_SOURCE = sourceLabel;
   rebuildNoise();
   onInput();
   const total = 10 + XLS_PLANTILLA.length * 2 + 13 + 1 + 12 + countUges();
@@ -1829,6 +1860,7 @@ function onXlsxUpload(ev) {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
       const { cfg, miss } = parseExcelToConfig(wb);
       applyConfig(cfg, '📊 ' + file.name, miss);
+      saveConfigLocal('📊 ' + file.name);   // persiste automáticamente
     } catch (err) { $('dataStatus').innerHTML = `<span style="color:var(--bad)">Error al leer el Excel: ${err.message}</span>`; }
   };
   reader.readAsArrayBuffer(file);
@@ -1842,6 +1874,7 @@ function onJsonUpload(ev) {
       const cfg = JSON.parse(e.target.result);
       if (!cfg.mercado || !cfg.plantilla || !cfg.reporte) throw new Error('El JSON no tiene la estructura esperada.');
       applyConfig(cfg, '🧩 ' + file.name);
+      saveConfigLocal('🧩 ' + file.name);   // persiste automáticamente
     } catch (err) { $('dataStatus').innerHTML = `<span style="color:var(--bad)">Error al leer el JSON: ${err.message}</span>`; }
   };
   reader.readAsText(file);
@@ -1861,8 +1894,9 @@ function toggleDataPanel() {
   if (show) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// init: precarga un ejemplo (para "saltar") y arranca en el cuestionario
+// init: precarga un ejemplo y, si hay datos guardados en este navegador, los autocarga
 applyPreset('conservador');
+loadConfigLocal();   // ← usa tus datos buenos si los guardaste antes
 renderQuiz();
 </script>
 <!-- ════════════ GAME UX (v4) — intro cutscene + CEO beats + retro reskin ════════════ -->
