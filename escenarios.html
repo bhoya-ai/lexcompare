@@ -547,6 +547,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <button class="gx2-btn primary" id="gAdvance" onclick="closeMonth()">Cerrar el mes ▶</button>
       <button class="gx2-btn ghost" onclick="resetGame()">↺ Reiniciar</button>
       <button class="gx2-btn ghost" onclick="openQuiz()">Editar decisión inicial</button>
+      <button class="gx2-btn ghost" onclick="toggleDataPanel()" title="Cargar tus datos reales (Excel/JSON)">⚙ Datos</button>
       <button class="gx2-btn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙ Analista</button>
     </div>
   </div>
@@ -574,6 +575,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     <div class="gx2-actions">
       <button class="gx2-btn primary" id="gNext" onclick="toDecide()">Tomar decisiones ▶</button>
       <button class="gx2-btn ghost" onclick="resetGame()">↺ Reiniciar</button>
+      <button class="gx2-btn ghost" onclick="toggleDataPanel()" title="Cargar tus datos reales (Excel/JSON)">⚙ Datos</button>
       <button class="gx2-btn ghost" onclick="showAppView()" title="Modo analista (tecla A)">⚙ Analista</button>
     </div>
     <div class="legend-note" id="gNote"></div>
@@ -1853,7 +1855,11 @@ function downloadJSON() {
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }
 function resetConfig() { applyConfig(JSON.parse(JSON.stringify(DEFAULT_MODEL_CONFIG)), 'datos de ejemplo (sintéticos)'); }
-function toggleDataPanel() { const p = $('dataPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
+function toggleDataPanel() {
+  const p = $('dataPanel'); const show = p.style.display === 'none' || !p.style.display;
+  p.style.display = show ? 'block' : 'none';
+  if (show) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 // init: precarga un ejemplo (para "saltar") y arranca en el cuestionario
 applyPreset('conservador');
