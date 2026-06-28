@@ -1038,8 +1038,19 @@ function resetGame() { startGame(); }
 
 // Registra una decisión sobre una palanca desde el mes actual (valor en fracción 0..1).
 function setDecision(lever, valueFraccion) {
+  const v = valueFraccion || 0;
+  // No-op: si el valor NO cambia el objetivo vigente de la palanca, no registramos
+  // una decisión nueva (evita reiniciar la rampa de retardo cada mes y que la
+  // palanca se quede "a medias"). Solo reaccionamos cuando de verdad se cambia algo.
+  const decs = game.timeline.filter(d => d.lever === lever && d.month !== game.month);
+  const target = decs.length ? decs[decs.length - 1].value : (game.baseInputs[lever] || 0);
+  const alreadyThisMonth = game.timeline.some(d => d.lever === lever && d.month === game.month);
+  if (Math.abs(v - target) < 1e-9) {
+    if (alreadyThisMonth) { game.timeline = game.timeline.filter(d => !(d.lever === lever && d.month === game.month)); recomputeHistory(); }
+    return;
+  }
   game.timeline = game.timeline.filter(d => !(d.lever === lever && d.month === game.month));
-  game.timeline.push({ month: game.month, lever, value: valueFraccion });
+  game.timeline.push({ month: game.month, lever, value: v });
   recomputeHistory();
 }
 
@@ -3775,10 +3786,13 @@ const GAMEUX = (function () {
   }
   function restructurableFTE() {
     try {
+      // Excedente que AÚN queda: plantilla actual (con la reestructuración ya
+      // aplicada hasta ahora) menos la plantilla con reestructuración completa.
+      // Así, a medida que reestructuras, el excedente baja hasta 0 (no se queda fijo).
       const inp = currentEffectiveInputsForDecision();
-      const noR = runModel({ ...inp, restruct: 0 });
-      const fullR = runModel({ ...inp, restruct: 1 });
-      return Math.max(0, noR.ftePost - fullR.ftePost);
+      const actual = runModel(inp);                       // estado actual (restruct efectivo vigente)
+      const fullR = runModel({ ...inp, restruct: 1 });    // si reestructurásemos del todo
+      return Math.max(0, Math.round(actual.ftePost - fullR.ftePost));
     } catch (e) { return 0; }
   }
   function rotationPolicyText(v) {
