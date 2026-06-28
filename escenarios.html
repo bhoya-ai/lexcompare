@@ -2137,12 +2137,14 @@ renderQuiz();
     border-color: rgba(255,255,255,.14);
     box-shadow: 0 18px 0 rgba(0,0,0,.42), 0 0 0 6px rgba(255,255,255,.04);
   }
+  /* Bocadillo ENCIMA del retrato (no a la derecha): así no lo tapa el panel
+     «Resumen ejecutivo» y la cola apunta hacia abajo, al CEO, sin cubrirle la cara. */
   #ceoBeat .gx-bubble {
-    left: auto;
-    right: -19.53125%;
-    top: .520833%;
-    width: 49.479167%;
-    height: 35.15625%;
+    left: 13%;
+    right: auto;
+    top: -5%;
+    width: 74%;
+    height: 30%;
     transform: none;
   }
   #ceoBeat .gx-bubble .gx-txt {
@@ -2447,11 +2449,11 @@ renderQuiz();
     #ceoBeat { justify-content: center; padding-right: 18px; padding-left: 18px; align-items: flex-end; }
     #ceoBeat #cbStage { width: min(520px, 92vw); height: min(520px, 54vh); margin: 0 0 72px 0; }
     #ceoBeat .gx-bubble {
-      left: auto;
-      right: -19.53125%;
-      top: .520833%;
-      width: 49.479167%;
-      height: 35.15625%;
+      left: 6%;
+      right: auto;
+      top: -17%;
+      width: 88%;
+      height: 20%;
       transform: none;
     }
     .cb-dash {
