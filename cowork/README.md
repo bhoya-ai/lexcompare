@@ -1,55 +1,70 @@
 # Cowork Capture
 
 Sistema para capturar inputs de **LinkedIn** y **X**, acumularlos en un lote y
-mandarlos limpios a Gmail en un **único correo digest**, de forma que **Cowork**
-pueda leerlos bien. Resuelve dos problemas: el reenvío directo de esas
-plataformas a Gmail llega sucio/truncado, y un correo por post genera demasiada
-fricción cuando hay muchos inputs.
+exportarlos como **archivo Markdown** que **Cowork** procesa desde una carpeta
+(Drive o local) o adjunto a la conversación. Resuelve el problema original:
+los reenvíos de esas plataformas a Gmail llegaban sucios/truncados y se perdían
+inputs valiosos.
 
-## Arquitectura (v2 — lote y digest)
+## Arquitectura (v4 — lote en el sitio + digest a archivo)
 
 ```
-LinkedIn / X (navegador)          Página hub (artefacto)             Gmail
-┌──────────────────────┐   #add=  ┌──────────────────────┐  compose ┌─────────┐
-│ bookmarklet extrae y ├─────────►│ lote en localStorage  ├─────────►│ 1 correo│
-│ limpia el post       │  (hash)  │ revisar/quitar/enviar │  digest  │ → Cowork│
-└──────────────────────┘          └──────────────────────┘          └─────────┘
+LinkedIn / X (navegador)                        Carpeta / Cowork
+┌────────────────────────────────────┐  .md   ┌──────────────────┐
+│ bookmarklet: extrae + limpia posts ├───────►│ cowork-digest-   │
+│ lote en el propio sitio + panel    │descarga│ linkedin-FECHA.md│
+│ (confirmar, copiar, descargar)     │        │ → Cowork procesa │
+└────────────────────────────────────┘        └──────────────────┘
 ```
 
-- **Página hub**: publicada como artefacto de claude.ai (URL fija; se actualiza
-  al republicar, sin re-descargas). Este `index.html` es el código fuente; el
-  artefacto se publica desde él.
-- **Bookmarklet**: extrae y limpia el post de la página abierta y lo deposita en
-  el hub vía fragmento de URL (`#add=<json>`), que **no viaja al servidor**.
-  Ya no lleva el email incrustado → cambiar el destino no obliga a reinstalarlo;
-  solo hay que re-arrastrarlo si cambia la lógica de extracción.
-- **Digest**: un correo con N capturas, cada una con bloque de metadatos
-  (`FUENTE / ORIGEN / AUTOR / FECHA POST / CAPTURADO`). Si supera ~8000
-  caracteres, el texto completo queda en el portapapeles para pegar en Gmail.
-- **Modo manual**: pegar texto a mano (móvil, apps nativas) → limpia y añade al
-  mismo lote.
+- **Todo ocurre dentro de la página** de LinkedIn/X: el bookmarklet extrae y
+  limpia el post, lo guarda en el lote y muestra un panel flotante. Sin
+  transporte entre páginas (los visores embebidos y los límites de gesto de
+  usuario lo hacían inviable) y sin email (la URL de Gmail compose limita el
+  tamaño y obligaba a trocear).
+- **Digest**: `Descargar digest (n)` genera un `.md` con cabecera y una sección
+  por captura (`Fuente / Origen / Autor / Fecha post / Capturado` + contenido).
+  Sin límite de tamaño. También se puede `Copiar` para pegarlo directamente en
+  una conversación de Cowork.
+- **Almacenamiento con escalones verificados**: localStorage del sitio
+  (LinkedIn suele tenerlo lleno y rechaza escrituras) → sessionStorage de la
+  pestaña → `window.name` → memoria del panel. Cada escritura se relee para
+  confirmar; el panel avisa cuando el lote vive solo en la pestaña.
+- **Página hub** (este `index.html`, publicada como artefacto de claude.ai):
+  solo genera el bookmarklet (sin ningún dato personal incrustado) y ofrece el
+  modo manual (pegar texto → limpiar → descargar .md). 
+- **Deduplicación** por contenido; prioridad a la selección del usuario;
+  panel construido sin `innerHTML` (Trusted Types de X) ni `<style>` inyectado
+  (CSP).
 
 ## Extracción
 
-- **LinkedIn**: si la URL es de un post (`activity:ID`), apunta solo a ese
-  contenedor vía `[data-urn]`; extrae cuerpo (`.update-components-text`) +
-  autor/titular/fecha. Capturar desde el post individual, no desde el feed.
-- **X**: en páginas `/status/ID` selecciona el tweet principal por su permalink.
-- **Selección manual**: si el usuario selecciona texto antes de pulsar, se usa
-  esa selección (red de seguridad universal).
+- **LinkedIn**: con URL de post (`activity:ID`) apunta solo a ese contenedor
+  vía `[data-urn]`; extrae cuerpo (`.update-components-text`) + autor/titular/
+  fecha. Capturar desde el post individual, no desde el feed.
+- **X**: en `/status/ID` selecciona el tweet principal por su permalink.
 - **Filtro de ruido** por líneas: contadores de reacciones, "Mostrar
-  traducción", "Promocionado", "Cargar más comentarios", "Seguir", etc.
+  traducción", "Promocionado", "Seguir", etc.
 
 ## Limitaciones conocidas
 
-- Los selectores de LinkedIn/X cambian con el tiempo. Cuando fallen: selección
-  manual o modo manual. Los selectores viven en `coworkCapture()` (aquí) y en
-  `ios-shortcut/extract.js` — actualizar ambos.
-- El lote vive en `localStorage` del navegador donde se abre el hub: no se
-  sincroniza entre dispositivos.
-- Gmail recorta cuerpos largos en la URL de compose: el digest completo se copia
-  siempre al portapapeles como respaldo.
+- Los selectores de LinkedIn/X cambian con el tiempo. Red de seguridad:
+  seleccionar el texto con el ratón antes de pulsar, o el modo manual.
+  Selectores en `coworkCapture()` (aquí) y `ios-shortcut/extract.js`.
+- El lote vive por red y por navegador (no se sincroniza entre dispositivos).
+- La descarga cae al portapapeles si el sitio bloquea blobs (no observado).
+
+## Historial de decisiones
+
+- v1–v2: correo por captura / hub con lote y digest por email. Descartados:
+  el visor de artefactos bloquea hash y portapapeles; el clic de marcador no
+  cuenta como gesto de usuario; la URL de Gmail compose limita el tamaño
+  (Error 400) y trocear en partes creaba un problema de reensamblado.
+- v3: lote y panel dentro del propio sitio (válido, se conserva).
+- v4: entrega por archivo .md en vez de email (decisión de producto:
+  procesar y unir correos de vuelta no tenía sentido).
 
 ## iOS
 
 Ver `ios-shortcut/`: Atajo que extrae texto limpio + metadatos desde Safari.
+Pendiente de alinear con v4 (guardar en Archivos/Drive en vez de email).

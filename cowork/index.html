@@ -52,7 +52,7 @@
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
   .card h2{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
   label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
-  input[type=text],input[type=email],textarea,select{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+  input[type=text],textarea,select{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
   input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   textarea{min-height:130px;resize:vertical;line-height:1.6}
   .row{display:flex;gap:12px;flex-wrap:wrap}
@@ -61,7 +61,6 @@
   button{border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
   button:hover{filter:brightness(1.08)}
   button.ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-  button.danger{background:transparent;border:1px solid var(--border);color:var(--danger)}
   .status{font-size:13px;font-weight:600;color:var(--ok)}
   .muted{color:var(--muted);font-size:13px;margin:8px 0 0}
   .hint{background:var(--warn-soft);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--muted);margin-top:12px}
@@ -70,30 +69,19 @@
   code{font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px}
   ol{margin:6px 0 0 20px;padding:0;font-size:13.5px}
   ol li{margin-bottom:6px}
-  .status-line{font-size:13px;color:var(--muted);margin-top:8px}
 </style>
 
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" style="opacity:.65">v3.3</span>
-    <p class="sub">El botón captura posts de LinkedIn y X y los acumula en un lote <b>dentro de la propia red</b>: un panel te confirma cada captura y desde él envías el digest a Gmail, sin cambiar de pestaña. Esta página solo sirve para configurar el botón y para añadir texto a mano.</p>
+    <span class="count-pill" style="opacity:.65">v4</span>
+    <p class="sub">El botón captura posts de LinkedIn y X, los limpia y los acumula en un lote dentro de la propia red. Cuando quieras, el panel descarga el lote como un archivo <b>.md</b> con metadatos: déjalo en tu carpeta y que Cowork procese desde ahí. Sin emails, sin límites de tamaño.</p>
   </div>
 
-  <!-- PASO 1: destino + botón -->
+  <!-- PASO 1: botón -->
   <div class="card">
-    <h2>1 · Configura y crea tu botón</h2>
-    <div class="row">
-      <div style="flex:2">
-        <label for="dest">Email que lee Cowork</label>
-        <input type="email" id="dest" placeholder="tu-direccion-cowork@gmail.com" autocomplete="off"/>
-      </div>
-      <div style="flex:0;align-self:flex-end">
-        <button id="saveDest">Guardar</button>
-      </div>
-      <span class="status" id="destStatus" style="display:none;align-self:flex-end">✓ Guardado</span>
-    </div>
-    <div class="toolbar">
+    <h2>1 · Instala el botón (una sola vez)</h2>
+    <div class="toolbar" style="margin-top:2px">
       <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Capturar para Cowork</a>
       <button class="ghost" id="copyBm">Copiar código</button>
     </div>
@@ -101,7 +89,7 @@
       <label for="bmCode">Código del marcador (selecciónalo y cópialo con <code>Ctrl/Cmd+C</code>)</label>
       <textarea id="bmCode" readonly style="min-height:90px;font-family:var(--mono);font-size:11px"></textarea>
     </div>
-    <p class="muted">Instalación: pulsa «Copiar código» → crea un marcador nuevo llamado <i>Capturar para Cowork</i> → pega el código en el campo URL. La URL del marcador debe empezar por <code>javascript:</code>. El email va dentro del botón: si lo cambias, guarda y reinstala el marcador.</p>
+    <p class="muted">Instalación: pulsa «Copiar código» → crea un marcador nuevo llamado <i>Capturar para Cowork</i> → pega el código en el campo URL. La URL del marcador debe empezar por <code>javascript:</code>. Ya no hay nada que configurar: el botón no lleva ningún dato personal.</p>
   </div>
 
   <!-- PASO 2: uso -->
@@ -109,16 +97,17 @@
     <h2>2 · Cómo se usa</h2>
     <ol>
       <li>Abre el <b>post individual</b> (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
-      <li>Pulsa <b>Capturar para Cowork</b>: aparecerá un panel abajo a la derecha del propio LinkedIn/X con «✓ Añadido al lote (n)». Sigue leyendo y capturando.</li>
-      <li>Cuando quieras, en ese panel pulsa <b>Enviar digest</b>: se abre Gmail con un único correo con todas las capturas. Tras enviarlo, pulsa <b>Vaciar</b> en el panel.</li>
+      <li>Pulsa <b>Capturar para Cowork</b>: un panel en el propio LinkedIn/X confirma «✓ Añadido al lote (n)». Sigue leyendo y capturando.</li>
+      <li>Cuando quieras, pulsa <b>Descargar digest (n)</b> en el panel: se guarda <code>cowork-digest-linkedin-FECHA.md</code> en tus Descargas.</li>
+      <li>Deja el archivo en tu <b>carpeta de Cowork</b> (Drive o local) o adjúntalo directamente a la conversación. Después pulsa <b>Vaciar</b> en el panel.</li>
     </ol>
-    <div class="hint"><b>El lote vive en cada red:</b> las capturas de LinkedIn se acumulan en LinkedIn y las de X en X (limitación de los navegadores, no se pueden mezclar). Tendrás un digest por red. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
+    <div class="hint"><b>El lote vive en cada red:</b> las capturas de LinkedIn se acumulan en LinkedIn y las de X en X (limitación de los navegadores). Tendrás un archivo por red. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
   </div>
 
   <!-- MANUAL -->
   <div class="card">
     <h2>Añadir a mano (móvil / apps nativas)</h2>
-    <p class="muted" style="margin:0 0 10px">Pega aquí el texto: lo limpia y abre Gmail directamente con ese contenido.</p>
+    <p class="muted" style="margin:0 0 10px">Pega aquí el texto: lo limpia y lo descarga como .md con los mismos metadatos.</p>
     <div class="row" style="margin-bottom:10px">
       <div>
         <label for="mSource">Fuente</label>
@@ -132,7 +121,8 @@
     <label for="mText">Texto del post</label>
     <textarea id="mText" placeholder="Pega aquí el contenido…"></textarea>
     <div class="toolbar">
-      <button id="mSend">Limpiar y abrir Gmail</button>
+      <button id="mSave">Limpiar y descargar .md</button>
+      <button class="ghost" id="mCopy">Solo copiar limpio</button>
       <span class="status" id="mStatus" style="display:none"></span>
     </div>
   </div>
@@ -142,15 +132,12 @@
 /* ============================================================
    coworkCapture — se serializa íntegra como bookmarklet.
    AUTOCONTENIDA. Todo ocurre dentro de la página de LinkedIn/X:
-   extrae el post, lo guarda en el lote (localStorage del sitio)
-   y muestra un panel con el estado y el envío del digest.
-   Sin transporte entre páginas: los visores embebidos y los
-   límites de gesto de usuario hacían perder la captura.
-   Nota: sin innerHTML (X usa Trusted Types) y sin <style>
-   inyectado (CSP): solo createElement + el.style.
+   extrae el post, lo guarda en el lote (almacén con escalones de
+   respaldo) y muestra un panel para descargar el digest como .md.
+   Sin innerHTML (Trusted Types de X) y sin <style> inyectado (CSP).
    ============================================================ */
-function coworkCapture(DEST){
-  var K = 'coworkLote.v1', KD = 'coworkDest';
+function coworkCapture(){
+  var K = 'coworkLote.v1';
   var host = location.hostname, url = location.href;
 
   function clean(t){ return (t||'').replace(/ /g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
@@ -173,10 +160,9 @@ function coworkCapture(DEST){
       return true;
     }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
+
   /* Almacenamiento con verificación y escalones: localStorage del sitio
-     (LinkedIn suele tenerlo LLENO y setItem lanza QuotaExceeded) →
-     sessionStorage de la pestaña → window.name → memoria del panel.
-     Siempre se relee tras escribir para confirmar que quedó guardado. */
+     (LinkedIn suele tenerlo LLENO) → sessionStorage → window.name → memoria. */
   var WN = '%%CWK%%', mem = null, modo = 'sitio';
   function readRaw(){
     try{ var v = localStorage.getItem(K); if(v != null) return v; }catch(e){}
@@ -199,13 +185,6 @@ function coworkCapture(DEST){
     mem = v; modo='memoria'; return true;
   }
   function stamp(){ return new Date().toISOString().slice(0,16).replace('T',' ')+' UTC'; }
-  function dest(){
-    var d = '';
-    try{ d = localStorage.getItem(KD)||''; }catch(e){}
-    if(!d) d = DEST||'';
-    if(!d){ d = prompt('Email que lee Cowork:')||''; if(d) try{ localStorage.setItem(KD,d); }catch(e){} }
-    return d.trim();
-  }
 
   /* ---------- extracción ---------- */
   var source = 'Web';
@@ -285,71 +264,36 @@ function coworkCapture(DEST){
     }
   }
 
-  /* ---------- digest ---------- */
-  function buildBlocks(){
-    var b = lote();
-    return b.map(function(it, i){
-      return '\n==================== '+(i+1)+'/'+b.length+' ====================\n'
-        + 'FUENTE: '+it.source+'\n'
-        + (it.url ? 'ORIGEN: '+it.url+'\n' : '')
-        + (it.author ? 'AUTOR: '+it.author+'\n' : '')
-        + (it.postDate ? 'FECHA POST: '+it.postDate+'\n' : '')
-        + 'CAPTURADO: '+it.captured+'\n\n'
+  /* ---------- digest .md ---------- */
+  function buildDigest(){
+    var items = lote();
+    if(!items.length) return null;
+    var md = '# Digest Cowork Capture — '+source+'\n\n'
+      + '- Generado: '+stamp()+'\n'
+      + '- Capturas: '+items.length+'\n';
+    items.forEach(function(it, i){
+      md += '\n---\n\n## '+(i+1)+'/'+items.length+(it.author ? ' · '+it.author.split(',')[0] : '')+'\n\n'
+        + '- Fuente: '+it.source+'\n'
+        + (it.url ? '- Origen: '+it.url+'\n' : '')
+        + (it.author ? '- Autor: '+it.author+'\n' : '')
+        + (it.postDate ? '- Fecha post: '+it.postDate+'\n' : '')
+        + '- Capturado: '+it.captured+'\n\n'
         + it.content + '\n';
     });
+    var fname = 'cowork-digest-'+source.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.md';
+    return { md: md, fname: fname, n: items.length };
   }
-  function buildDigest(){
-    var blocks = buildBlocks();
-    if(!blocks.length) return null;
-    var head = 'DIGEST COWORK CAPTURE ('+source+')\nGENERADO: '+stamp()+'\nCAPTURAS: '+blocks.length+'\n';
-    return { subject:'[Cowork] Digest '+source+' · '+blocks.length+' capturas · '+new Date().toISOString().slice(0,10),
-             full: head + blocks.join('') };
-  }
-  /* Gmail rechaza con 400 las URLs de compose largas: el digest se parte
-     en correos que caben (límite sobre la URL YA codificada), respetando
-     posts enteros siempre que sea posible. */
-  var URL_LIMIT = 7600;
-  function composeBase(to, su){
-    return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body=';
-  }
-  function buildParts(to){
-    var blocks = buildBlocks();
-    if(!blocks.length) return null;
-    var nCap = blocks.length;
-    var date = new Date().toISOString().slice(0,10);
-    var suFor = function(i,total){
-      return '[Cowork] Digest '+source+' · '+nCap+' capturas · '+date + (total>1 ? ' · parte '+i+'/'+total : '');
-    };
-    /* la base más larga posible (con sufijo de parte) para medir con margen */
-    /* +400 de margen para la cabecera de parte que se añade tras medir */
-    var worstBase = composeBase(to, suFor(99,99)).length + 400;
-    var fits = function(body){ return worstBase + encodeURIComponent(body).length <= URL_LIMIT; };
-    var CONT = '\n[el post continúa en la parte siguiente...]';
-    var CONT2 = '[...continuación del post anterior]\n';
-    var bodies = [], cur = '';
-    blocks.forEach(function(blk){
-      if(fits(cur + blk)){ cur += blk; return; }
-      if(cur){ bodies.push(cur); cur = ''; }
-      if(fits(blk)){ cur = blk; return; }
-      /* un solo post no cabe: se trocea con marcas de continuación */
-      var rest = blk;
-      while(!fits(rest)){
-        var lo = 0, hi = rest.length;
-        while(lo < hi){
-          var mid = (lo + hi + 1) >> 1;
-          if(fits(rest.slice(0,mid) + CONT)) lo = mid; else hi = mid - 1;
-        }
-        bodies.push(rest.slice(0,lo) + CONT);
-        rest = CONT2 + rest.slice(lo);
-      }
-      cur = rest;
-    });
-    if(cur) bodies.push(cur);
-    var total = bodies.length;
-    return bodies.map(function(body, i){
-      var head = 'DIGEST COWORK CAPTURE ('+source+')'+(total>1 ? ' · PARTE '+(i+1)+'/'+total : '')+'\nGENERADO: '+stamp()+'\nCAPTURAS: '+nCap+'\n';
-      return composeBase(to, suFor(i+1,total)) + encodeURIComponent(head + body);
-    });
+  function download(fname, text){
+    try{
+      var blob = new Blob([text], {type:'text/markdown;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.parentNode && a.parentNode.removeChild(a); }catch(e){} }, 3000);
+      return true;
+    }catch(e){ return false; }
   }
 
   /* ---------- panel (sin innerHTML, sin <style>) ---------- */
@@ -384,52 +328,42 @@ function coworkCapture(DEST){
     btnRow.appendChild(x);
     return x;
   }
-  var bSend  = btn('Enviar digest ('+b.length+')', true);
+  var bSave  = btn('Descargar digest ('+b.length+')', true);
   var bCopy  = btn('Copiar');
   var bClear = btn('Vaciar');
   P.appendChild(btnRow);
   var noteTxt = modo==='sitio'
-    ? 'El lote de '+source+' vive en este sitio. Tras enviar el correo, pulsa Vaciar.'
+    ? 'El lote de '+source+' vive en este sitio. Tras descargar y guardar el archivo, pulsa Vaciar.'
     : (modo==='pestaña'
-      ? '⚠ Almacén de '+source+' lleno: el lote vive en ESTA PESTAÑA. No la cierres antes de enviar el digest.'
-      : '⚠ El lote vive solo en este panel. Envía el digest antes de navegar o cerrar.');
+      ? '⚠ Almacén de '+source+' lleno: el lote vive en ESTA PESTAÑA. Descarga el digest antes de cerrarla.'
+      : '⚠ El lote vive solo en este panel. Descarga el digest antes de navegar o cerrar.');
   var note = el('div', noteTxt, {marginTop:'8px',fontSize:'11.5px',color: modo==='sitio'?'#8b93a8':'#d9a83f'});
   P.appendChild(note);
 
-  /* Envío por partes: cada clic abre el siguiente correo del digest.
-     Con lotes normales es un único correo; si no cabe, parte 1/N, 2/N… */
-  var partUrls = null, partIdx = 0;
-  bSend.onclick = function(){
-    var to = dest();
-    if(!to){ msgEl.textContent='⚠ Falta el email de destino.'; return; }
-    if(!partUrls){
-      partUrls = buildParts(to);
-      partIdx = 0;
-      if(!partUrls){ msgEl.textContent='El lote está vacío.'; partUrls=null; return; }
-    }
-    window.open(partUrls[partIdx],'_blank');
-    partIdx++;
-    if(partIdx < partUrls.length){
-      bSend.textContent = 'Enviar parte '+(partIdx+1)+'/'+partUrls.length;
-      msgEl.textContent = 'Parte '+partIdx+'/'+partUrls.length+' abierta. Envíala en Gmail y pulsa el botón para la siguiente.';
+  bSave.onclick = function(){
+    var d = buildDigest();
+    if(!d){ msgEl.textContent='El lote está vacío.'; return; }
+    if(download(d.fname, d.md)){
+      msgEl.textContent = '✓ Descargado '+d.fname+' ('+d.n+' capturas). Déjalo en tu carpeta de Cowork y pulsa Vaciar.';
     } else {
-      msgEl.textContent = (partUrls.length>1 ? 'Última parte abierta ('+partUrls.length+'/'+partUrls.length+'). ' : 'Correo abierto. ') + 'Tras enviar, pulsa Vaciar.';
-      bSend.textContent = 'Enviar digest ('+lote().length+')';
-      partUrls = null;
+      var ok = false;
+      try{ navigator.clipboard.writeText(d.md); ok = true; }catch(e){}
+      msgEl.textContent = ok
+        ? '⚠ Descarga bloqueada por el sitio: digest copiado al portapapeles, pégalo en un archivo.'
+        : '⚠ No pude descargar ni copiar. Usa el botón Copiar.';
     }
   };
   bCopy.onclick = function(){
     var d = buildDigest();
     if(!d){ msgEl.textContent='El lote está vacío.'; return; }
-    try{ navigator.clipboard.writeText(d.full).then(function(){ msgEl.textContent='✓ Digest copiado.'; }, function(){ msgEl.textContent='⚠ Copia bloqueada por el sitio.'; }); }
+    try{ navigator.clipboard.writeText(d.md).then(function(){ msgEl.textContent='✓ Digest copiado ('+d.n+' capturas). Pégalo donde quieras.'; }, function(){ msgEl.textContent='⚠ Copia bloqueada por el sitio.'; }); }
     catch(e){ msgEl.textContent='⚠ Copia bloqueada por el sitio.'; }
   };
   bClear.onclick = function(){
     if(confirm('¿Vaciar el lote de '+source+' ('+lote().length+' capturas)?')){
       guarda([]);
-      partUrls = null; partIdx = 0;
       msgEl.textContent='Lote vaciado.';
-      bSend.textContent='Enviar digest (0)';
+      bSave.textContent='Descargar digest (0)';
     }
   };
   document.body.appendChild(P);
@@ -437,8 +371,6 @@ function coworkCapture(DEST){
 
 /* ============================ PÁGINA ============================ */
 (function(){
-  var DEST_KEY = 'coworkDest';
-
   function copyText(t){
     var ok = false;
     try{
@@ -453,21 +385,21 @@ function coworkCapture(DEST){
     try{ if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){},function(){}); }catch(e){}
     return ok;
   }
+  function download(fname, text){
+    try{
+      var blob = new Blob([text], {type:'text/markdown;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(e){} }, 3000);
+      return true;
+    }catch(e){ return false; }
+  }
 
-  var destInput = document.getElementById('dest');
-  destInput.value = localStorage.getItem(DEST_KEY) || '';
-  function currentDest(){ return (localStorage.getItem(DEST_KEY)||'').trim(); }
-  function bookmarkletCode(){ return 'javascript:('+coworkCapture.toString()+')('+JSON.stringify(currentDest())+');'; }
-  function refreshBm(){ document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode()); }
-
-  document.getElementById('saveDest').addEventListener('click', function(){
-    localStorage.setItem(DEST_KEY, destInput.value.trim());
-    refreshBm();
-    var s = document.getElementById('destStatus');
-    s.style.display='inline';
-    setTimeout(function(){ s.style.display='none'; },2000);
-  });
-
+  function bookmarkletCode(){ return 'javascript:('+coworkCapture.toString()+')();'; }
+  document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode());
   document.getElementById('copyBm').addEventListener('click', function(){
     var code = bookmarkletCode();
     var ok = copyText(code);
@@ -480,9 +412,8 @@ function coworkCapture(DEST){
     btn.textContent = ok ? '✓ Copiado' : 'Cópialo del cuadro de abajo (Ctrl/Cmd+C)';
     setTimeout(function(){ btn.textContent='Copiar código'; }, ok?1500:4000);
   });
-  refreshBm();
 
-  /* --- modo manual: limpia y abre Gmail directamente --- */
+  /* --- modo manual: limpia y descarga .md --- */
   var NOISE_M = [
     /^\d{1,3}([.,]\d{3})*(\s*(reactions?|reacciones?|comments?|comentarios?|reposts?|shares?|veces compartido|likes?|me gusta|views?|visualizaciones?))?$/i,
     /^(like|comment|repost|send|share|follow(ing)?|reply|view|more|see translation|show more|promoted|sponsored)$/i,
@@ -506,37 +437,36 @@ function coworkCapture(DEST){
     }
     return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
+  function buildManualMd(){
+    var content = cleanPasted(document.getElementById('mText').value);
+    if(!content) return null;
+    var src = document.getElementById('mSource').value;
+    var u = document.getElementById('mUrl').value.trim();
+    var dt = new Date().toISOString().slice(0,16).replace('T',' ')+' UTC';
+    var md = '# Digest Cowork Capture — '+src+'\n\n- Generado: '+dt+'\n- Capturas: 1\n'
+      + '\n---\n\n## 1/1\n\n'
+      + '- Fuente: '+src+'\n'
+      + (u ? '- Origen: '+u+'\n' : '')
+      + '- Capturado: '+dt+'\n\n'
+      + content + '\n';
+    var fname = 'cowork-digest-'+src.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.md';
+    return { md: md, fname: fname };
+  }
   function mflash(msg){
     var s = document.getElementById('mStatus');
     s.textContent = msg; s.style.display='inline';
-    setTimeout(function(){ s.style.display='none'; },2500);
+    setTimeout(function(){ s.style.display='none'; },3000);
   }
-  document.getElementById('mSend').addEventListener('click', function(){
-    var content = cleanPasted(document.getElementById('mText').value);
-    if(!content){ mflash('Pega algún texto primero.'); return; }
-    var to = currentDest();
-    if(!to){ mflash('Guarda antes el email de destino arriba.'); return; }
-    var src = document.getElementById('mSource').value;
-    var u = document.getElementById('mUrl').value.trim();
-    var dt = new Date().toISOString().slice(0,16).replace('T',' ');
-    var full = 'FUENTE: '+src+'\n'+(u?'ORIGEN: '+u+'\n':'')+'CAPTURADO: '+dt+' UTC\n\n----------\n\n'+content;
-    copyText(full);
-    var subject = '['+src+'] '+content.replace(/\n/g,' ').slice(0,60);
-    /* límite medido sobre la URL codificada (Gmail devuelve 400 si se excede) */
-    var base = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(subject)+'&body=';
-    var LIMIT = 7600, enc = encodeURIComponent(full), urlOut;
-    if(base.length + enc.length <= LIMIT){ urlOut = base + enc; }
-    else {
-      var note = '\n\n[...TEXTO COMPLETO EN TU PORTAPAPELES: borra esto y pega con Ctrl/Cmd+V...]';
-      var lo = 0, hi = full.length;
-      while(lo < hi){
-        var mid = (lo + hi + 1) >> 1;
-        if(base.length + encodeURIComponent(full.slice(0,mid)+note).length <= LIMIT) lo = mid; else hi = mid - 1;
-      }
-      urlOut = base + encodeURIComponent(full.slice(0,lo)+note);
-    }
-    window.open(urlOut,'_blank');
-    document.getElementById('mText').value=''; document.getElementById('mUrl').value='';
+  document.getElementById('mSave').addEventListener('click', function(){
+    var r = buildManualMd();
+    if(!r){ mflash('Pega algún texto primero.'); return; }
+    if(download(r.fname, r.md)){ mflash('✓ Descargado '+r.fname); document.getElementById('mText').value=''; document.getElementById('mUrl').value=''; }
+    else { copyText(r.md); mflash('⚠ Descarga bloqueada: copiado al portapapeles.'); }
+  });
+  document.getElementById('mCopy').addEventListener('click', function(){
+    var r = buildManualMd();
+    if(!r){ mflash('Pega algún texto primero.'); return; }
+    mflash(copyText(r.md) ? '✓ Copiado en formato .md' : '⚠ No pude copiar.');
   });
 })();
 </script>
