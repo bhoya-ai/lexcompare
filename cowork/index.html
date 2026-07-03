@@ -76,7 +76,7 @@
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" style="opacity:.65">v3.1</span>
+    <span class="count-pill" style="opacity:.65">v3.2</span>
     <p class="sub">El botón captura posts de LinkedIn y X y los acumula en un lote <b>dentro de la propia red</b>: un panel te confirma cada captura y desde él envías el digest a Gmail, sin cambiar de pestaña. Esta página solo sirve para configurar el botón y para añadir texto a mano.</p>
   </div>
 
@@ -347,16 +347,31 @@ function coworkCapture(DEST){
   var note = el('div', noteTxt, {marginTop:'8px',fontSize:'11.5px',color: modo==='sitio'?'#8b93a8':'#d9a83f'});
   P.appendChild(note);
 
+  /* Gmail rechaza con 400 las URLs de compose demasiado largas: el límite
+     debe medirse sobre la URL YA CODIFICADA (tildes y saltos triplican). */
+  function composeUrl(to, su, full){
+    var base = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body=';
+    var LIMIT = 7600;
+    var enc = encodeURIComponent(full);
+    if(base.length + enc.length <= LIMIT) return { url: base+enc, cut:false };
+    var note = '\n\n[...DIGEST COMPLETO EN TU PORTAPAPELES: borra este texto y pega con Ctrl/Cmd+V...]';
+    var lo = 0, hi = full.length;
+    while(lo < hi){
+      var mid = (lo + hi + 1) >> 1;
+      if(base.length + encodeURIComponent(full.slice(0,mid)+note).length <= LIMIT) lo = mid; else hi = mid - 1;
+    }
+    return { url: base + encodeURIComponent(full.slice(0,lo)+note), cut:true };
+  }
+
   bSend.onclick = function(){
     var d = buildDigest();
     if(!d){ msgEl.textContent='El lote está vacío.'; return; }
     var to = dest();
     if(!to){ msgEl.textContent='⚠ Falta el email de destino.'; return; }
     try{ if(navigator.clipboard) navigator.clipboard.writeText(d.full); }catch(e){}
-    var MAX = 8000, body = d.full;
-    if(body.length > MAX) body = body.slice(0,MAX)+'\n\n[...DIGEST COMPLETO EN EL PORTAPAPELES: borra esto y pega con Ctrl/Cmd+V...]';
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(body),'_blank');
-    msgEl.textContent = d.full.length>MAX ? 'Correo abierto (digest largo: pega con Ctrl+V en Gmail). Luego pulsa Vaciar.' : 'Correo abierto. Tras enviarlo, pulsa Vaciar.';
+    var c = composeUrl(to, d.subject, d.full);
+    window.open(c.url,'_blank');
+    msgEl.textContent = c.cut ? 'Correo abierto RECORTADO: en Gmail borra el cuerpo y pega con Ctrl/Cmd+V el digest completo. Luego pulsa Vaciar.' : 'Correo abierto. Tras enviarlo, pulsa Vaciar.';
   };
   bCopy.onclick = function(){
     var d = buildDigest();
@@ -461,8 +476,20 @@ function coworkCapture(DEST){
     var full = 'FUENTE: '+src+'\n'+(u?'ORIGEN: '+u+'\n':'')+'CAPTURADO: '+dt+' UTC\n\n----------\n\n'+content;
     copyText(full);
     var subject = '['+src+'] '+content.replace(/\n/g,' ').slice(0,60);
-    var body = full.length>8000 ? full.slice(0,8000)+'\n\n[...TEXTO COMPLETO EN EL PORTAPAPELES...]' : full;
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
+    /* límite medido sobre la URL codificada (Gmail devuelve 400 si se excede) */
+    var base = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(subject)+'&body=';
+    var LIMIT = 7600, enc = encodeURIComponent(full), urlOut;
+    if(base.length + enc.length <= LIMIT){ urlOut = base + enc; }
+    else {
+      var note = '\n\n[...TEXTO COMPLETO EN TU PORTAPAPELES: borra esto y pega con Ctrl/Cmd+V...]';
+      var lo = 0, hi = full.length;
+      while(lo < hi){
+        var mid = (lo + hi + 1) >> 1;
+        if(base.length + encodeURIComponent(full.slice(0,mid)+note).length <= LIMIT) lo = mid; else hi = mid - 1;
+      }
+      urlOut = base + encodeURIComponent(full.slice(0,lo)+note);
+    }
+    window.open(urlOut,'_blank');
     document.getElementById('mText').value=''; document.getElementById('mUrl').value='';
   });
 })();
