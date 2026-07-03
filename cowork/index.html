@@ -103,7 +103,7 @@
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
     <span class="count-pill" id="countPill">0 en el lote</span>
-    <span class="count-pill" style="opacity:.65">v2.1</span>
+    <span class="count-pill" style="opacity:.65">v2.2</span>
     <p class="sub">Captura posts de LinkedIn y X con el botón, acumúlalos aquí y envíalos a Cowork en un solo correo. Todo se guarda en este navegador; nada pasa por un servidor.</p>
   </div>
 
@@ -146,6 +146,10 @@
     <div class="toolbar" style="margin-top:4px">
       <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Capturar para Cowork</a>
       <button class="ghost" id="copyBm">Copiar código</button>
+    </div>
+    <div id="bmCodeWrap" style="display:none;margin-top:10px">
+      <label for="bmCode">Código del marcador (selecciónalo y cópialo con <code>Ctrl/Cmd+C</code>)</label>
+      <textarea id="bmCode" readonly style="min-height:90px;font-family:var(--mono);font-size:11px"></textarea>
     </div>
     <details style="margin-top:12px">
       <summary>Cómo se usa · instalación manual</summary>
@@ -294,6 +298,23 @@ function coworkCapture(HUB){
   var BATCH_KEY = 'coworkBatch.v1';
   var DEST_KEY  = 'coworkDest';
 
+  /* Copia robusta: execCommand (no pide permisos, funciona embebido)
+     con Clipboard API como segundo intento. Devuelve true si copió. */
+  function copyText(t){
+    var ok = false;
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.setAttribute('readonly','');
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select(); ta.setSelectionRange(0, t.length);
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){}
+    try{ if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){},function(){}); }catch(e){}
+    return ok;
+  }
+
   var storageOK = true;
   try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
   catch(e){ storageOK = false; }
@@ -425,7 +446,7 @@ function coworkCapture(HUB){
     if(!d){ digestStatus('El lote está vacío.'); return; }
     var dest = (localStorage.getItem(DEST_KEY)||'').trim();
     if(!dest){ digestStatus('Configura antes el email de destino, justo debajo.'); return; }
-    try{ navigator.clipboard.writeText(d.full); }catch(e){}
+    copyText(d.full);
     var MAX = 8000, body = d.full;
     if(body.length > MAX) body = body.slice(0,MAX) + '\n\n[...DIGEST COMPLETO COPIADO AL PORTAPAPELES: bórralo todo y pega con Ctrl/Cmd+V...]';
     window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest)+'&su='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(body),'_blank');
@@ -437,7 +458,9 @@ function coworkCapture(HUB){
   document.getElementById('copyDigest').addEventListener('click', function(){
     var d = buildDigest();
     if(!d){ digestStatus('El lote está vacío.'); return; }
-    navigator.clipboard.writeText(d.full).then(function(){ digestStatus('✓ Digest copiado ('+d.full.length+' caracteres).'); });
+    digestStatus(copyText(d.full)
+      ? '✓ Digest copiado ('+d.full.length+' caracteres).'
+      : '⚠ No pude copiar automáticamente. Usa «Enviar digest a Gmail»: el texto irá en el correo.');
   });
 
   document.getElementById('clearBatch').addEventListener('click', function(){
@@ -463,11 +486,17 @@ function coworkCapture(HUB){
   function bookmarkletCode(){ return 'javascript:(' + coworkCapture.toString() + ')(' + JSON.stringify(hubUrl()) + ');'; }
   document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode());
   document.getElementById('copyBm').addEventListener('click', function(){
-    navigator.clipboard.writeText(bookmarkletCode()).then(function(){
-      var btn = document.getElementById('copyBm'); var o = btn.textContent;
-      btn.textContent = '✓ Copiado';
-      setTimeout(function(){ btn.textContent = o; },1500);
-    });
+    var code = bookmarkletCode();
+    var ok = copyText(code);
+    var btn = document.getElementById('copyBm'); var o = 'Copiar código';
+    /* muestra siempre el código como respaldo, ya seleccionado */
+    var wrap = document.getElementById('bmCodeWrap');
+    var ta = document.getElementById('bmCode');
+    wrap.style.display = 'block';
+    ta.value = code;
+    ta.focus(); ta.select(); ta.setSelectionRange(0, code.length);
+    btn.textContent = ok ? '✓ Copiado' : 'Cópialo del cuadro de abajo (Ctrl/Cmd+C)';
+    setTimeout(function(){ btn.textContent = o; }, ok ? 1500 : 4000);
   });
 
   /* --- añadir a mano --- */
