@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
-<title>Cowork Capture — Lote y digest</title>
+<title>Cowork Capture — Botón y digest</title>
 <style>
   :root{
     --bg:#f5f5f2; --surface:#ffffff; --surface2:#edeff5; --border:#d8dbe6;
@@ -49,7 +49,6 @@
   .masthead h1 em{color:var(--accent);font-style:normal}
   .count-pill{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);border-radius:20px;padding:3px 12px;font-variant-numeric:tabular-nums}
   .masthead .sub{flex-basis:100%;color:var(--muted);font-size:13.5px;margin:0}
-
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
   .card h2{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
   label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
@@ -69,66 +68,24 @@
   .hint b{color:var(--text)}
   .bm-link{display:inline-block;background:var(--accent);color:var(--accent-ink);text-decoration:none;padding:10px 20px;border-radius:9px;font-weight:700;font-size:14.5px;cursor:grab}
   code{font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px}
-  details summary{cursor:pointer;font-size:13px;color:var(--muted);user-select:none}
-  details[open] summary{margin-bottom:8px}
   ol{margin:6px 0 0 20px;padding:0;font-size:13.5px}
-  ol li{margin-bottom:5px}
-
-  /* banner de captura añadida */
-  #flash{display:none;background:var(--ok-soft);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:12px 16px;font-weight:600;font-size:14px}
-
-  /* lote */
-  #batchCard{border-color:var(--accent-border)}
-  .batch-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .batch-head h2{margin:0;flex:1}
-  .empty{color:var(--muted);font-size:13.5px;background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:16px;text-align:center}
-  ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-  li.item{border:1px solid var(--border);border-radius:9px;padding:10px 12px;background:var(--bg)}
-  .item-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .chip{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:11px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
-  .item-author{font-size:13.5px;font-weight:600}
-  .item-when{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
-  .item-snip{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-  .item.open .item-snip{display:block;-webkit-line-clamp:unset;white-space:pre-wrap;color:var(--text)}
-  .item-actions{display:flex;gap:12px;margin-top:6px}
-  .linkbtn{background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer}
-  .linkbtn.del{color:var(--danger)}
-  @media (prefers-reduced-motion: no-preference){
-    #flash{animation:pop .25s ease-out}
-    @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-  }
+  ol li{margin-bottom:6px}
+  .status-line{font-size:13px;color:var(--muted);margin-top:8px}
 </style>
 
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" id="countPill">0 en el lote</span>
-    <span class="count-pill" style="opacity:.65">v2.2</span>
-    <p class="sub">Captura posts de LinkedIn y X con el botón, acumúlalos aquí y envíalos a Cowork en un solo correo. Todo se guarda en este navegador; nada pasa por un servidor.</p>
+    <span class="count-pill" style="opacity:.65">v3</span>
+    <p class="sub">El botón captura posts de LinkedIn y X y los acumula en un lote <b>dentro de la propia red</b>: un panel te confirma cada captura y desde él envías el digest a Gmail, sin cambiar de pestaña. Esta página solo sirve para configurar el botón y para añadir texto a mano.</p>
   </div>
 
-  <div id="flash" role="status"></div>
-
-  <div class="hint" id="pasteHint"><b>¿Acabas de capturar un post y no aparece abajo?</b> Haz clic en cualquier parte de esta página y pulsa <code>Ctrl/Cmd + V</code>: la captura viaja también en tu portapapeles y se añadirá al lote.</div>
-
-  <!-- LOTE -->
-  <div class="card" id="batchCard">
-    <div class="batch-head">
-      <h2>Lote de capturas</h2>
-      <button id="sendDigest">Enviar digest a Gmail</button>
-      <button class="ghost" id="copyDigest">Copiar digest</button>
-      <button class="danger" id="clearBatch">Vaciar</button>
-    </div>
-    <div id="batchList"></div>
-    <p class="muted" id="digestStatus" style="display:none"></p>
-  </div>
-
-  <!-- CONFIG -->
+  <!-- PASO 1: destino + botón -->
   <div class="card">
-    <h2>Dirección que lee Cowork</h2>
+    <h2>1 · Configura y crea tu botón</h2>
     <div class="row">
       <div style="flex:2">
-        <label for="dest">Email de destino del digest</label>
+        <label for="dest">Email que lee Cowork</label>
         <input type="email" id="dest" placeholder="tu-direccion-cowork@gmail.com" autocomplete="off"/>
       </div>
       <div style="flex:0;align-self:flex-end">
@@ -136,14 +93,7 @@
       </div>
       <span class="status" id="destStatus" style="display:none;align-self:flex-end">✓ Guardado</span>
     </div>
-    <p class="muted">Puedes cambiarla cuando quieras sin tocar el botón de captura.</p>
-  </div>
-
-  <!-- BOOKMARKLET -->
-  <div class="card">
-    <h2>Botón de captura</h2>
-    <p class="muted" style="margin:0 0 10px">Arrastra este botón a tu barra de marcadores (<code>Ctrl/Cmd + Shift + B</code> si no la ves). Solo hay que reinstalarlo si cambia la lógica de extracción, no al cambiar el email.</p>
-    <div class="toolbar" style="margin-top:4px">
+    <div class="toolbar">
       <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Capturar para Cowork</a>
       <button class="ghost" id="copyBm">Copiar código</button>
     </div>
@@ -151,20 +101,24 @@
       <label for="bmCode">Código del marcador (selecciónalo y cópialo con <code>Ctrl/Cmd+C</code>)</label>
       <textarea id="bmCode" readonly style="min-height:90px;font-family:var(--mono);font-size:11px"></textarea>
     </div>
-    <details style="margin-top:12px">
-      <summary>Cómo se usa · instalación manual</summary>
-      <ol>
-        <li>Abre el <b>post individual</b> en LinkedIn o X (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
-        <li>Pulsa <b>Capturar para Cowork</b> en tu barra de marcadores: se abrirá esta página. Si la captura no aparece sola en el lote, <b>haz clic en la página y pulsa <code>Ctrl/Cmd+V</code></b> (la captura viaja también en el portapapeles).</li>
-        <li>Cuando tengas varias, pulsa <b>Enviar digest a Gmail</b>: un solo correo con todas.</li>
-      </ol>
-      <div class="hint"><b>Instalación recomendada:</b> pulsa «Copiar código», crea un marcador nuevo (nómbralo <i>Capturar para Cowork</i>) y pega el código en el campo URL. Comprueba que la URL del marcador empieza por <code>javascript:</code> — si empieza por <code>https://</code>, el arrastre guardó la dirección de esta página en vez del código, y el botón no capturará nada. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
-    </details>
+    <p class="muted">Instalación: pulsa «Copiar código» → crea un marcador nuevo llamado <i>Capturar para Cowork</i> → pega el código en el campo URL. La URL del marcador debe empezar por <code>javascript:</code>. El email va dentro del botón: si lo cambias, guarda y reinstala el marcador.</p>
+  </div>
+
+  <!-- PASO 2: uso -->
+  <div class="card">
+    <h2>2 · Cómo se usa</h2>
+    <ol>
+      <li>Abre el <b>post individual</b> (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
+      <li>Pulsa <b>Capturar para Cowork</b>: aparecerá un panel abajo a la derecha del propio LinkedIn/X con «✓ Añadido al lote (n)». Sigue leyendo y capturando.</li>
+      <li>Cuando quieras, en ese panel pulsa <b>Enviar digest</b>: se abre Gmail con un único correo con todas las capturas. Tras enviarlo, pulsa <b>Vaciar</b> en el panel.</li>
+    </ol>
+    <div class="hint"><b>El lote vive en cada red:</b> las capturas de LinkedIn se acumulan en LinkedIn y las de X en X (limitación de los navegadores, no se pueden mezclar). Tendrás un digest por red. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
   </div>
 
   <!-- MANUAL -->
   <div class="card">
-    <h2>Añadir a mano</h2>
+    <h2>Añadir a mano (móvil / apps nativas)</h2>
+    <p class="muted" style="margin:0 0 10px">Pega aquí el texto: lo limpia y abre Gmail directamente con ese contenido.</p>
     <div class="row" style="margin-bottom:10px">
       <div>
         <label for="mSource">Fuente</label>
@@ -178,7 +132,7 @@
     <label for="mText">Texto del post</label>
     <textarea id="mText" placeholder="Pega aquí el contenido…"></textarea>
     <div class="toolbar">
-      <button class="ghost" id="mAdd">Limpiar y añadir al lote</button>
+      <button id="mSend">Limpiar y abrir Gmail</button>
       <span class="status" id="mStatus" style="display:none"></span>
     </div>
   </div>
@@ -187,13 +141,19 @@
 <script>
 /* ============================================================
    coworkCapture — se serializa íntegra como bookmarklet.
-   AUTOCONTENIDA: se ejecuta dentro de la página de LinkedIn/X.
-   Extrae + limpia y deposita la captura en esta página (HUB)
-   vía fragmento de URL (#add=...), que nunca viaja al servidor.
+   AUTOCONTENIDA. Todo ocurre dentro de la página de LinkedIn/X:
+   extrae el post, lo guarda en el lote (localStorage del sitio)
+   y muestra un panel con el estado y el envío del digest.
+   Sin transporte entre páginas: los visores embebidos y los
+   límites de gesto de usuario hacían perder la captura.
+   Nota: sin innerHTML (X usa Trusted Types) y sin <style>
+   inyectado (CSP): solo createElement + el.style.
    ============================================================ */
-function coworkCapture(HUB){
+function coworkCapture(DEST){
+  var K = 'coworkLote.v1', KD = 'coworkDest';
   var host = location.hostname, url = location.href;
-  function clean(t){ return (t||'').replace(/ /g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
+
+  function clean(t){ return (t||'').replace(/ /g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
   function txt(el){ return el ? clean(el.innerText||el.textContent||'') : ''; }
   var NOISE = [
     /^\d[\d.,\s]*$/,
@@ -213,7 +173,18 @@ function coworkCapture(HUB){
       return true;
     }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
+  function lote(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } }
+  function guarda(b){ try{ localStorage.setItem(K, JSON.stringify(b)); }catch(e){} }
+  function stamp(){ return new Date().toISOString().slice(0,16).replace('T',' ')+' UTC'; }
+  function dest(){
+    var d = '';
+    try{ d = localStorage.getItem(KD)||''; }catch(e){}
+    if(!d) d = DEST||'';
+    if(!d){ d = prompt('Email que lee Cowork:')||''; if(d) try{ localStorage.setItem(KD,d); }catch(e){} }
+    return d.trim();
+  }
 
+  /* ---------- extracción ---------- */
   var source = 'Web';
   if(/(^|\.)x\.com$|twitter\.com$/.test(host)) source = 'X';
   else if(/linkedin\.com$/.test(host)) source = 'LinkedIn';
@@ -276,30 +247,110 @@ function coworkCapture(HUB){
   }
 
   var content = denoise(pieces.join('\n\n----------\n\n'));
-  if(!content){ alert('No pude extraer texto. Selecciona con el ratón el texto del post y vuelve a pulsar el botón.'); return; }
+  var dup = false, msg;
+  if(!content){
+    msg = '⚠ No pude extraer texto. Selecciona el texto del post con el ratón y vuelve a pulsar.';
+  } else {
+    var b = lote();
+    for(var i=0;i<b.length;i++){ if(b[i].content === content){ dup = true; break; } }
+    if(dup){
+      msg = 'Este post ya estaba en el lote ('+b.length+').';
+    } else {
+      b.push({ source:source, url:url, author:authors.join(', '), postDate:postDate, captured:stamp(), content:content });
+      guarda(b);
+      msg = '✓ Añadido al lote ('+b.length+').';
+    }
+  }
 
-  var payload = { v:1, source:source, url:url, author:authors.join(', '), postDate:postDate, content:content };
-  var packed = '%%COWORK1%%' + JSON.stringify(payload);
-  /* portapapeles: canal principal (el hash puede perderse si el hub va embebido) */
-  var copied = false;
-  try{
-    var ta = document.createElement('textarea');
-    ta.value = packed; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    copied = document.execCommand('copy');
-    document.body.removeChild(ta);
-  }catch(e){}
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(packed).then(function(){},function(){}); }catch(e){}
-  window.open(HUB + '#add=' + encodeURIComponent(JSON.stringify(payload)), '_blank');
+  /* ---------- digest ---------- */
+  function buildDigest(){
+    var b = lote();
+    if(!b.length) return null;
+    var head = 'DIGEST COWORK CAPTURE ('+source+')\nGENERADO: '+stamp()+'\nCAPTURAS: '+b.length+'\n';
+    var blocks = b.map(function(it, i){
+      return '\n==================== '+(i+1)+'/'+b.length+' ====================\n'
+        + 'FUENTE: '+it.source+'\n'
+        + (it.url ? 'ORIGEN: '+it.url+'\n' : '')
+        + (it.author ? 'AUTOR: '+it.author+'\n' : '')
+        + (it.postDate ? 'FECHA POST: '+it.postDate+'\n' : '')
+        + 'CAPTURADO: '+it.captured+'\n\n'
+        + it.content + '\n';
+    });
+    return { subject:'[Cowork] Digest '+source+' · '+b.length+' capturas · '+new Date().toISOString().slice(0,10),
+             full: head + blocks.join('') };
+  }
+
+  /* ---------- panel (sin innerHTML, sin <style>) ---------- */
+  var P = document.getElementById('cowork-panel');
+  if(P) P.remove();
+  P = document.createElement('div');
+  P.id = 'cowork-panel';
+  var st = P.style;
+  st.position='fixed'; st.right='18px'; st.bottom='18px'; st.zIndex='2147483647';
+  st.background='#1a1d28'; st.color='#e3e6f0'; st.border='1px solid #4f63d2';
+  st.borderRadius='12px'; st.padding='14px 16px'; st.width='300px';
+  st.font='13.5px/1.5 system-ui,sans-serif'; st.boxShadow='0 8px 28px rgba(0,0,0,.45)';
+
+  function el(tag, text, css){
+    var e = document.createElement(tag);
+    if(text) e.textContent = text;
+    if(css) for(var k in css) e.style[k] = css[k];
+    return e;
+  }
+  var title = el('div','Cowork Capture',{fontWeight:'700',fontSize:'12px',letterSpacing:'.8px',textTransform:'uppercase',color:'#7b8cff',marginBottom:'6px'});
+  var close = el('span','✕',{float:'right',cursor:'pointer',color:'#8b93a8'});
+  close.onclick = function(){ P.remove(); };
+  title.appendChild(close);
+  P.appendChild(title);
+  var msgEl = el('div', msg, {marginBottom:'10px', color: dup||!content ? '#d9a83f' : '#4cc088', fontWeight:'600'});
+  P.appendChild(msgEl);
+
+  var btnRow = el('div','',{display:'flex',gap:'8px',flexWrap:'wrap'});
+  function btn(label, primary){
+    var x = el('button', label, {border:'none',borderRadius:'8px',padding:'7px 12px',fontSize:'12.5px',fontWeight:'600',cursor:'pointer',
+      background: primary?'#4f63d2':'#232736', color: primary?'#fff':'#e3e6f0'});
+    btnRow.appendChild(x);
+    return x;
+  }
+  var n = lote().length;
+  var bSend  = btn('Enviar digest ('+n+')', true);
+  var bCopy  = btn('Copiar');
+  var bClear = btn('Vaciar');
+  P.appendChild(btnRow);
+  var note = el('div','El lote de '+source+' vive en este sitio. Tras enviar el correo, pulsa Vaciar.',{marginTop:'8px',fontSize:'11.5px',color:'#8b93a8'});
+  P.appendChild(note);
+
+  bSend.onclick = function(){
+    var d = buildDigest();
+    if(!d){ msgEl.textContent='El lote está vacío.'; return; }
+    var to = dest();
+    if(!to){ msgEl.textContent='⚠ Falta el email de destino.'; return; }
+    try{ if(navigator.clipboard) navigator.clipboard.writeText(d.full); }catch(e){}
+    var MAX = 8000, body = d.full;
+    if(body.length > MAX) body = body.slice(0,MAX)+'\n\n[...DIGEST COMPLETO EN EL PORTAPAPELES: borra esto y pega con Ctrl/Cmd+V...]';
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(body),'_blank');
+    msgEl.textContent = d.full.length>MAX ? 'Correo abierto (digest largo: pega con Ctrl+V en Gmail). Luego pulsa Vaciar.' : 'Correo abierto. Tras enviarlo, pulsa Vaciar.';
+  };
+  bCopy.onclick = function(){
+    var d = buildDigest();
+    if(!d){ msgEl.textContent='El lote está vacío.'; return; }
+    try{ navigator.clipboard.writeText(d.full).then(function(){ msgEl.textContent='✓ Digest copiado.'; }, function(){ msgEl.textContent='⚠ Copia bloqueada por el sitio.'; }); }
+    catch(e){ msgEl.textContent='⚠ Copia bloqueada por el sitio.'; }
+  };
+  bClear.onclick = function(){
+    if(confirm('¿Vaciar el lote de '+source+' ('+lote().length+' capturas)?')){
+      guarda([]);
+      msgEl.textContent='Lote vaciado.';
+      bSend.textContent='Enviar digest (0)';
+    }
+  };
+  document.body.appendChild(P);
 }
 
-/* ============================ HUB ============================ */
+/* ============================ PÁGINA ============================ */
 (function(){
-  var BATCH_KEY = 'coworkBatch.v1';
-  var DEST_KEY  = 'coworkDest';
+  var DEST_KEY = 'coworkDest';
 
-  /* Copia robusta: execCommand (no pide permisos, funciona embebido)
-     con Clipboard API como segundo intento. Devuelve true si copió. */
   function copyText(t){
     var ok = false;
     try{
@@ -315,191 +366,35 @@ function coworkCapture(HUB){
     return ok;
   }
 
-  var storageOK = true;
-  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
-  catch(e){ storageOK = false; }
-
-  function loadBatch(){ try{ return JSON.parse(localStorage.getItem(BATCH_KEY)||'[]'); }catch(e){ return []; } }
-  function saveBatch(b){ try{ localStorage.setItem(BATCH_KEY, JSON.stringify(b)); }catch(e){} }
-  function nowStamp(){ return new Date().toISOString().slice(0,16).replace('T',' ') + ' UTC'; }
-  function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
-
-  /* --- entrada por hash (#add=...) --- */
-  var added = false;
-  var hm = location.hash.match(/^#add=([\s\S]+)$/);
-  if(hm){
-    try{
-      var p = JSON.parse(decodeURIComponent(hm[1]));
-      if(p && p.content){
-        var b = loadBatch();
-        b.push({ source:p.source||'Web', url:p.url||'', author:p.author||'', postDate:p.postDate||'', captured:nowStamp(), content:p.content });
-        saveBatch(b);
-        added = true;
-      }
-    }catch(e){}
-    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
-  }
-
-  /* --- render --- */
-  function render(){
-    var b = loadBatch();
-    document.getElementById('countPill').textContent = b.length + (b.length===1?' en el lote':' en el lote');
-    var box = document.getElementById('batchList');
-    if(!b.length){
-      box.innerHTML = '<div class="empty">Aún no hay capturas. Usa el botón de la barra de marcadores sobre un post, o añade texto a mano abajo.</div>';
-      return;
-    }
-    var html = '<ul class="items">';
-    b.forEach(function(it, i){
-      var snip = (it.content||'').replace(/\s+/g,' ').slice(0,220);
-      html += '<li class="item" data-i="'+i+'">'
-        + '<div class="item-top"><span class="chip">'+esc(it.source)+'</span>'
-        + '<span class="item-author">'+esc((it.author||'').split(',')[0] || '(sin autor)')+'</span>'
-        + '<span class="item-when">'+esc(it.captured)+'</span></div>'
-        + '<div class="item-snip">'+esc(it.content)+'</div>'
-        + '<div class="item-actions">'
-        + '<button class="linkbtn" data-act="toggle" data-i="'+i+'">Ver completo</button>'
-        + (it.url ? '<a class="linkbtn" href="'+esc(it.url)+'" target="_blank" rel="noopener">Origen</a>' : '')
-        + '<button class="linkbtn del" data-act="del" data-i="'+i+'">Quitar</button>'
-        + '</div></li>';
-    });
-    box.innerHTML = html + '</ul>';
-  }
-
-  document.getElementById('batchList').addEventListener('click', function(ev){
-    var t = ev.target;
-    var act = t.getAttribute && t.getAttribute('data-act');
-    if(!act) return;
-    var i = parseInt(t.getAttribute('data-i'),10);
-    if(act==='del'){
-      var b = loadBatch(); b.splice(i,1); saveBatch(b); render();
-    } else if(act==='toggle'){
-      var li = t.closest('li.item');
-      li.classList.toggle('open');
-      t.textContent = li.classList.contains('open') ? 'Contraer' : 'Ver completo';
-    }
-  });
-
-  function flashMsg(msg){
-    var f = document.getElementById('flash');
-    f.textContent = msg;
-    f.style.display = 'block';
-  }
-  if(added){
-    flashMsg('✓ Captura añadida al lote ('+loadBatch().length+'). Puedes cerrar esta pestaña y seguir leyendo.');
-  }
-
-  /* --- entrada por portapapeles (Ctrl/Cmd+V en cualquier parte) --- */
-  var MARK = '%%COWORK1%%';
-  document.addEventListener('paste', function(ev){
-    var t = '';
-    try{ t = (ev.clipboardData || window.clipboardData).getData('text'); }catch(e){}
-    if(!t || t.indexOf(MARK) !== 0) return;   /* pegado normal: no interferir */
-    ev.preventDefault();
-    try{
-      var p = JSON.parse(t.slice(MARK.length));
-      if(p && p.content){
-        var b = loadBatch();
-        b.push({ source:p.source||'Web', url:p.url||'', author:p.author||'', postDate:p.postDate||'', captured:nowStamp(), content:p.content });
-        saveBatch(b);
-        render();
-        flashMsg('✓ Captura añadida al lote ('+b.length+'). Puedes cerrar la pestaña del post y seguir leyendo.');
-      }
-    }catch(e){
-      flashMsg('⚠ No pude leer la captura pegada. Vuelve al post y pulsa el botón otra vez.');
-    }
-  });
-  if(!storageOK){
-    var f2 = document.getElementById('flash');
-    f2.textContent = '⚠ Este navegador bloquea el almacenamiento local aquí: el lote no se guardará entre visitas. Usa «Copiar digest» en el momento.';
-    f2.style.display = 'block';
-    f2.style.color = 'var(--warn)';
-    f2.style.borderColor = 'var(--warn)';
-    f2.style.background = 'var(--warn-soft)';
-  }
-
-  /* --- digest --- */
-  function buildDigest(){
-    var b = loadBatch();
-    if(!b.length) return null;
-    var head = 'DIGEST COWORK CAPTURE\nGENERADO: '+nowStamp()+'\nCAPTURAS: '+b.length+'\n';
-    var blocks = b.map(function(it, i){
-      return '\n==================== '+(i+1)+'/'+b.length+' ====================\n'
-        + 'FUENTE: '+it.source+'\n'
-        + (it.url ? 'ORIGEN: '+it.url+'\n' : '')
-        + (it.author ? 'AUTOR: '+it.author+'\n' : '')
-        + (it.postDate ? 'FECHA POST: '+it.postDate+'\n' : '')
-        + 'CAPTURADO: '+it.captured+'\n\n'
-        + it.content + '\n';
-    });
-    var subject = '[Cowork] Digest '+b.length+' capturas · '+new Date().toISOString().slice(0,10);
-    return { subject: subject, full: head + blocks.join('') };
-  }
-  function digestStatus(msg){
-    var s = document.getElementById('digestStatus');
-    s.textContent = msg; s.style.display = 'block';
-    setTimeout(function(){ s.style.display='none'; }, 4000);
-  }
-
-  document.getElementById('sendDigest').addEventListener('click', function(){
-    var d = buildDigest();
-    if(!d){ digestStatus('El lote está vacío.'); return; }
-    var dest = (localStorage.getItem(DEST_KEY)||'').trim();
-    if(!dest){ digestStatus('Configura antes el email de destino, justo debajo.'); return; }
-    copyText(d.full);
-    var MAX = 8000, body = d.full;
-    if(body.length > MAX) body = body.slice(0,MAX) + '\n\n[...DIGEST COMPLETO COPIADO AL PORTAPAPELES: bórralo todo y pega con Ctrl/Cmd+V...]';
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest)+'&su='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(body),'_blank');
-    digestStatus(d.full.length > MAX
-      ? 'Digest largo: en Gmail, borra el cuerpo y pega (Ctrl/Cmd+V) para tener el texto completo. Tras enviarlo, pulsa «Vaciar».'
-      : 'Correo abierto. Tras enviarlo, pulsa «Vaciar» para empezar un lote nuevo.');
-  });
-
-  document.getElementById('copyDigest').addEventListener('click', function(){
-    var d = buildDigest();
-    if(!d){ digestStatus('El lote está vacío.'); return; }
-    digestStatus(copyText(d.full)
-      ? '✓ Digest copiado ('+d.full.length+' caracteres).'
-      : '⚠ No pude copiar automáticamente. Usa «Enviar digest a Gmail»: el texto irá en el correo.');
-  });
-
-  document.getElementById('clearBatch').addEventListener('click', function(){
-    var b = loadBatch();
-    if(!b.length) return;
-    if(confirm('¿Vaciar el lote ('+b.length+' capturas)? Esta acción no se puede deshacer.')){
-      saveBatch([]); render();
-    }
-  });
-
-  /* --- destino --- */
   var destInput = document.getElementById('dest');
   destInput.value = localStorage.getItem(DEST_KEY) || '';
+  function currentDest(){ return (localStorage.getItem(DEST_KEY)||'').trim(); }
+  function bookmarkletCode(){ return 'javascript:('+coworkCapture.toString()+')('+JSON.stringify(currentDest())+');'; }
+  function refreshBm(){ document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode()); }
+
   document.getElementById('saveDest').addEventListener('click', function(){
-    try{ localStorage.setItem(DEST_KEY, destInput.value.trim()); }catch(e){}
+    localStorage.setItem(DEST_KEY, destInput.value.trim());
+    refreshBm();
     var s = document.getElementById('destStatus');
     s.style.display='inline';
     setTimeout(function(){ s.style.display='none'; },2000);
   });
 
-  /* --- bookmarklet --- */
-  function hubUrl(){ return location.origin + location.pathname + location.search; }
-  function bookmarkletCode(){ return 'javascript:(' + coworkCapture.toString() + ')(' + JSON.stringify(hubUrl()) + ');'; }
-  document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode());
   document.getElementById('copyBm').addEventListener('click', function(){
     var code = bookmarkletCode();
     var ok = copyText(code);
-    var btn = document.getElementById('copyBm'); var o = 'Copiar código';
-    /* muestra siempre el código como respaldo, ya seleccionado */
     var wrap = document.getElementById('bmCodeWrap');
     var ta = document.getElementById('bmCode');
-    wrap.style.display = 'block';
+    wrap.style.display='block';
     ta.value = code;
     ta.focus(); ta.select(); ta.setSelectionRange(0, code.length);
+    var btn = document.getElementById('copyBm');
     btn.textContent = ok ? '✓ Copiado' : 'Cópialo del cuadro de abajo (Ctrl/Cmd+C)';
-    setTimeout(function(){ btn.textContent = o; }, ok ? 1500 : 4000);
+    setTimeout(function(){ btn.textContent='Copiar código'; }, ok?1500:4000);
   });
+  refreshBm();
 
-  /* --- añadir a mano --- */
+  /* --- modo manual: limpia y abre Gmail directamente --- */
   var NOISE_M = [
     /^\d{1,3}([.,]\d{3})*(\s*(reactions?|reacciones?|comments?|comentarios?|reposts?|shares?|veces compartido|likes?|me gusta|views?|visualizaciones?))?$/i,
     /^(like|comment|repost|send|share|follow(ing)?|reply|view|more|see translation|show more|promoted|sponsored)$/i,
@@ -512,7 +407,7 @@ function coworkCapture(HUB){
     /^\d+\s*(h|d|w|m|min|s|sem|años?|año)$/i
   ];
   function cleanPasted(t){
-    var lines = (t||'').replace(/ /g,' ').split(/\r?\n/);
+    var lines = (t||'').replace(/ /g,' ').split(/\r?\n/);
     var out = [];
     for(var i=0;i<lines.length;i++){
       var L = lines[i].replace(/[ \t]+/g,' ').trim();
@@ -523,20 +418,26 @@ function coworkCapture(HUB){
     }
     return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
-  document.getElementById('mAdd').addEventListener('click', function(){
-    var content = cleanPasted(document.getElementById('mText').value);
+  function mflash(msg){
     var s = document.getElementById('mStatus');
-    if(!content){ s.textContent='Pega algún texto primero.'; s.style.display='inline'; setTimeout(function(){s.style.display='none';},2200); return; }
-    var b = loadBatch();
-    b.push({ source:document.getElementById('mSource').value, url:document.getElementById('mUrl').value.trim(), author:'', postDate:'', captured:nowStamp(), content:content });
-    saveBatch(b);
+    s.textContent = msg; s.style.display='inline';
+    setTimeout(function(){ s.style.display='none'; },2500);
+  }
+  document.getElementById('mSend').addEventListener('click', function(){
+    var content = cleanPasted(document.getElementById('mText').value);
+    if(!content){ mflash('Pega algún texto primero.'); return; }
+    var to = currentDest();
+    if(!to){ mflash('Guarda antes el email de destino arriba.'); return; }
+    var src = document.getElementById('mSource').value;
+    var u = document.getElementById('mUrl').value.trim();
+    var dt = new Date().toISOString().slice(0,16).replace('T',' ');
+    var full = 'FUENTE: '+src+'\n'+(u?'ORIGEN: '+u+'\n':'')+'CAPTURADO: '+dt+' UTC\n\n----------\n\n'+content;
+    copyText(full);
+    var subject = '['+src+'] '+content.replace(/\n/g,' ').slice(0,60);
+    var body = full.length>8000 ? full.slice(0,8000)+'\n\n[...TEXTO COMPLETO EN EL PORTAPAPELES...]' : full;
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
     document.getElementById('mText').value=''; document.getElementById('mUrl').value='';
-    s.textContent='✓ Añadido al lote'; s.style.display='inline';
-    setTimeout(function(){ s.style.display='none'; },2200);
-    render();
   });
-
-  render();
 })();
 </script>
 
