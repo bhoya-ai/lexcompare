@@ -42,6 +42,12 @@ DOM real de la página → texto limpio + autor + URL + fecha.
      (inserta las variables `Asunto` y `Cuerpo` donde se indica; iOS abrirá la
      app de Gmail si está instalada).
 
+   - **Opción C (añadir al lote del hub):** en vez de componer un correo,
+     acción **"Texto"** con `URL_DEL_HUB#add=` + una acción **"Codificar URL"**
+     sobre un diccionario JSON con `source`, `url`, `author` y `content`
+     (obtenidos del Resultado de JavaScript), y **"Abrir URLs"**. La captura se
+     suma al mismo lote que el bookmarklet de escritorio y sale en el digest.
+
 ## Uso
 En Safari, sobre la página/post → **Compartir → Enviar a Cowork**. Si solo te
 interesa un fragmento, **selecciónalo antes de compartir** y usará esa selección.

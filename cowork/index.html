@@ -1,266 +1,438 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cowork Capture — LinkedIn &amp; X → Gmail</title>
-  <style>
-    :root{
-      --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3350;
-      --accent:#5b7fff; --accent-light:#7b9aff; --ok:#22c55e; --warn:#f0c040;
-      --text:#e2e8f0; --muted:#8892aa;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;line-height:1.55}
-    header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-    .logo{font-size:22px;font-weight:700;letter-spacing:-.5px}
-    .logo span{color:var(--accent-light)}
-    .badge{background:rgba(91,127,255,.15);color:var(--accent-light);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(91,127,255,.3);letter-spacing:.5px}
-    main{padding:28px 32px;max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px}
-    h2{font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
-    .step-n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700}
-    p{color:var(--text);margin-bottom:10px}
-    p.muted{color:var(--muted);font-size:13px}
-    label{display:block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-    input[type=text],input[type=email],textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
-    input:focus,textarea:focus,select:focus{border-color:var(--accent)}
-    textarea{min-height:160px;resize:vertical;line-height:1.6}
-    .row{display:flex;gap:14px;flex-wrap:wrap}
-    .row>div{flex:1;min-width:200px}
-    button{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
-    button:hover{background:var(--accent-light)}
-    button.ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-    .bm-link{display:inline-block;background:linear-gradient(135deg,#5b7fff,#7b9aff);color:#fff !important;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;font-size:15px;cursor:grab;box-shadow:0 4px 14px rgba(91,127,255,.4)}
-    .bm-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:12px 0}
-    .hint{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--warn);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--muted)}
-    .hint b{color:var(--text)}
-    ol{margin:8px 0 0 20px;color:var(--text)}
-    ol li{margin-bottom:6px}
-    code{background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--accent-light)}
-    .saved{color:var(--ok);font-size:13px;font-weight:600}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    footer{padding:24px 32px;text-align:center;color:var(--muted);font-size:12px}
-    a{color:var(--accent-light)}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
-  <header>
-    <div class="logo">Cowork <span>Capture</span></div>
-    <div class="badge">LINKEDIN &amp; X → GMAIL</div>
-  </header>
+<title>Cowork Capture — Lote y digest</title>
+<style>
+  :root{
+    --bg:#f5f5f2; --surface:#ffffff; --surface2:#edeff5; --border:#d8dbe6;
+    --text:#20242f; --muted:#636b80; --accent:#4f63d2; --accent-ink:#ffffff;
+    --accent-soft:rgba(79,99,210,.10); --accent-border:rgba(79,99,210,.35);
+    --ok:#2e8f5b; --ok-soft:rgba(46,143,91,.12);
+    --warn:#a97a1a; --warn-soft:rgba(181,127,22,.10);
+    --danger:#c04545;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#12141c; --surface:#1a1d28; --surface2:#232736; --border:#303650;
+      --text:#e3e6f0; --muted:#8b93a8; --accent:#7b8cff; --accent-ink:#0e1120;
+      --accent-soft:rgba(123,140,255,.12); --accent-border:rgba(123,140,255,.38);
+      --ok:#4cc088; --ok-soft:rgba(76,192,136,.14);
+      --warn:#d9a83f; --warn-soft:rgba(217,168,63,.12);
+      --danger:#e07070;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f5f2; --surface:#ffffff; --surface2:#edeff5; --border:#d8dbe6;
+    --text:#20242f; --muted:#636b80; --accent:#4f63d2; --accent-ink:#ffffff;
+    --accent-soft:rgba(79,99,210,.10); --accent-border:rgba(79,99,210,.35);
+    --ok:#2e8f5b; --ok-soft:rgba(46,143,91,.12);
+    --warn:#a97a1a; --warn-soft:rgba(181,127,22,.10);
+    --danger:#c04545;
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141c; --surface:#1a1d28; --surface2:#232736; --border:#303650;
+    --text:#e3e6f0; --muted:#8b93a8; --accent:#7b8cff; --accent-ink:#0e1120;
+    --accent-soft:rgba(123,140,255,.12); --accent-border:rgba(123,140,255,.38);
+    --ok:#4cc088; --ok-soft:rgba(76,192,136,.14);
+    --warn:#d9a83f; --warn-soft:rgba(217,168,63,.12);
+    --danger:#e07070;
+  }
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.55;margin:0}
+  .wrap{max-width:780px;margin:0 auto;padding:28px 20px 64px;display:flex;flex-direction:column;gap:18px}
+  .masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:4px 2px 8px}
+  .masthead h1{font-size:21px;font-weight:700;letter-spacing:-.3px;margin:0}
+  .masthead h1 em{color:var(--accent);font-style:normal}
+  .count-pill{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);border-radius:20px;padding:3px 12px;font-variant-numeric:tabular-nums}
+  .masthead .sub{flex-basis:100%;color:var(--muted);font-size:13.5px;margin:0}
 
-  <main>
-    <div class="card">
-      <p>Captura posts de <b>LinkedIn</b> y <b>X</b> con un clic, los limpia y abre un correo de Gmail listo para que <b>Cowork</b> lo lea. Funciona sobre la página que ya tienes abierta en tu navegador, sin scraping en servidor.</p>
-      <p class="muted">Tu configuración se guarda solo en este navegador (localStorage). No se envía nada a ningún servidor.</p>
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  .card h2{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  input[type=text],input[type=email],textarea,select{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+  input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  textarea{min-height:130px;resize:vertical;line-height:1.6}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:180px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  button{border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+  button:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+  button.danger{background:transparent;border:1px solid var(--border);color:var(--danger)}
+  .status{font-size:13px;font-weight:600;color:var(--ok)}
+  .muted{color:var(--muted);font-size:13px;margin:8px 0 0}
+  .hint{background:var(--warn-soft);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--muted);margin-top:12px}
+  .hint b{color:var(--text)}
+  .bm-link{display:inline-block;background:var(--accent);color:var(--accent-ink);text-decoration:none;padding:10px 20px;border-radius:9px;font-weight:700;font-size:14.5px;cursor:grab}
+  code{font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px}
+  details summary{cursor:pointer;font-size:13px;color:var(--muted);user-select:none}
+  details[open] summary{margin-bottom:8px}
+  ol{margin:6px 0 0 20px;padding:0;font-size:13.5px}
+  ol li{margin-bottom:5px}
+
+  /* banner de captura añadida */
+  #flash{display:none;background:var(--ok-soft);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:12px 16px;font-weight:600;font-size:14px}
+
+  /* lote */
+  #batchCard{border-color:var(--accent-border)}
+  .batch-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .batch-head h2{margin:0;flex:1}
+  .empty{color:var(--muted);font-size:13.5px;background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:16px;text-align:center}
+  ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  li.item{border:1px solid var(--border);border-radius:9px;padding:10px 12px;background:var(--bg)}
+  .item-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:11px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
+  .item-author{font-size:13.5px;font-weight:600}
+  .item-when{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+  .item-snip{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .item.open .item-snip{display:block;-webkit-line-clamp:unset;white-space:pre-wrap;color:var(--text)}
+  .item-actions{display:flex;gap:12px;margin-top:6px}
+  .linkbtn{background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer}
+  .linkbtn.del{color:var(--danger)}
+  @media (prefers-reduced-motion: no-preference){
+    #flash{animation:pop .25s ease-out}
+    @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <h1>Cowork <em>Capture</em></h1>
+    <span class="count-pill" id="countPill">0 en el lote</span>
+    <p class="sub">Captura posts de LinkedIn y X con el botón, acumúlalos aquí y envíalos a Cowork en un solo correo. Todo se guarda en este navegador; nada pasa por un servidor.</p>
+  </div>
+
+  <div id="flash" role="status"></div>
+
+  <!-- LOTE -->
+  <div class="card" id="batchCard">
+    <div class="batch-head">
+      <h2>Lote de capturas</h2>
+      <button id="sendDigest">Enviar digest a Gmail</button>
+      <button class="ghost" id="copyDigest">Copiar digest</button>
+      <button class="danger" id="clearBatch">Vaciar</button>
     </div>
+    <div id="batchList"></div>
+    <p class="muted" id="digestStatus" style="display:none"></p>
+  </div>
 
-    <!-- PASO 1: destino -->
-    <div class="card">
-      <h2><span class="step-n">1</span> Dirección que lee Cowork</h2>
-      <label for="dest">Email de destino</label>
-      <input type="email" id="dest" placeholder="p.ej. tu-direccion-cowork@gmail.com" autocomplete="off"/>
-      <div class="toolbar">
+  <!-- CONFIG -->
+  <div class="card">
+    <h2>Dirección que lee Cowork</h2>
+    <div class="row">
+      <div style="flex:2">
+        <label for="dest">Email de destino del digest</label>
+        <input type="email" id="dest" placeholder="tu-direccion-cowork@gmail.com" autocomplete="off"/>
+      </div>
+      <div style="flex:0;align-self:flex-end">
         <button id="saveDest">Guardar</button>
-        <span id="destStatus" class="saved" style="display:none">✓ Guardado</span>
       </div>
-      <p class="muted" style="margin-top:10px">Es la cuenta de Gmail desde / hacia la que Cowork lee tus inputs. El bookmarklet abrirá un correo ya dirigido a ella.</p>
+      <span class="status" id="destStatus" style="display:none;align-self:flex-end">✓ Guardado</span>
     </div>
+    <p class="muted">Puedes cambiarla cuando quieras sin tocar el botón de captura.</p>
+  </div>
 
-    <!-- PASO 2: bookmarklet -->
-    <div class="card">
-      <h2><span class="step-n">2</span> Instala el botón de captura</h2>
-      <p class="muted">Arrastra este botón a tu <b>barra de marcadores</b> (si no la ves: <code>Ctrl/Cmd + Shift + B</code>).</p>
-      <div class="bm-wrap">
-        <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Enviar a Cowork</a>
-        <button class="ghost" id="copyBm">Copiar código</button>
-      </div>
-      <div class="hint">
-        <b>Si no puedes arrastrar:</b> crea un marcador nuevo manualmente, ponle nombre <i>Enviar a Cowork</i> y pega en la URL el código que copies con el botón de arriba.
-      </div>
+  <!-- BOOKMARKLET -->
+  <div class="card">
+    <h2>Botón de captura</h2>
+    <p class="muted" style="margin:0 0 10px">Arrastra este botón a tu barra de marcadores (<code>Ctrl/Cmd + Shift + B</code> si no la ves). Solo hay que reinstalarlo si cambia la lógica de extracción, no al cambiar el email.</p>
+    <div class="toolbar" style="margin-top:4px">
+      <a class="bm-link" id="bookmarklet" href="#" onclick="return false;">📋 Capturar para Cowork</a>
+      <button class="ghost" id="copyBm">Copiar código</button>
     </div>
-
-    <!-- PASO 3: uso -->
-    <div class="card">
-      <h2><span class="step-n">3</span> Cómo capturar</h2>
+    <details style="margin-top:12px">
+      <summary>Cómo se usa · instalación manual</summary>
       <ol>
-        <li><b>Abre el post individual</b> (clic en su fecha/hora para ir a su página propia), no lo captures desde el feed: así se trae solo ese post y no el resto.</li>
-        <li>Pulsa el botón <b>📋 Enviar a Cowork</b> de tu barra de marcadores.</li>
-        <li>Se abrirá Gmail con el texto ya limpio y dirigido a Cowork. Revisa y envía.</li>
+        <li>Abre el <b>post individual</b> en LinkedIn o X (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
+        <li>Pulsa <b>Capturar para Cowork</b> en tu barra de marcadores: esta página se abrirá confirmando que se añadió al lote.</li>
+        <li>Cuando tengas varias, pulsa <b>Enviar digest a Gmail</b>: un solo correo con todas.</li>
       </ol>
-      <div class="hint" style="margin-top:14px">
-        <b>Truco:</b> si quieres capturar solo un fragmento (o algún post se resiste), <b>selecciónalo con el ratón</b> antes de pulsar el botón: usará exactamente esa selección. Además, el texto completo siempre queda copiado en el portapapeles por si Gmail recorta algo (pega con <code>Ctrl/Cmd+V</code>).
+      <div class="hint"><b>Si no puedes arrastrar:</b> crea un marcador nuevo, nómbralo <i>Capturar para Cowork</i> y pega como URL el código de «Copiar código». <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
+    </details>
+  </div>
+
+  <!-- MANUAL -->
+  <div class="card">
+    <h2>Añadir a mano</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <label for="mSource">Fuente</label>
+        <select id="mSource"><option>LinkedIn</option><option>X</option><option>Otro</option></select>
+      </div>
+      <div style="flex:2">
+        <label for="mUrl">URL (opcional)</label>
+        <input type="text" id="mUrl" placeholder="https://..."/>
       </div>
     </div>
-
-    <!-- PASO 4: modo manual -->
-    <div class="card">
-      <h2><span class="step-n">★</span> Modo manual (respaldo)</h2>
-      <p class="muted">Si prefieres pegar el texto a mano (por ejemplo desde el móvil), hazlo aquí: lo limpia y abre el correo igual.</p>
-      <div class="row" style="margin:8px 0 12px">
-        <div>
-          <label for="mSource">Fuente</label>
-          <select id="mSource"><option>LinkedIn</option><option>X</option><option>Otro</option></select>
-        </div>
-        <div>
-          <label for="mUrl">URL (opcional)</label>
-          <input type="text" id="mUrl" placeholder="https://..."/>
-        </div>
-      </div>
-      <label for="mText">Texto del post</label>
-      <textarea id="mText" placeholder="Pega aquí el contenido del post…"></textarea>
-      <div class="toolbar">
-        <button id="mSend">Limpiar y abrir Gmail</button>
-        <button class="ghost" id="mCopy">Solo copiar limpio</button>
-        <span id="mStatus" class="saved" style="display:none"></span>
-      </div>
+    <label for="mText">Texto del post</label>
+    <textarea id="mText" placeholder="Pega aquí el contenido…"></textarea>
+    <div class="toolbar">
+      <button class="ghost" id="mAdd">Limpiar y añadir al lote</button>
+      <span class="status" id="mStatus" style="display:none"></span>
     </div>
-  </main>
+  </div>
+</div>
 
-  <footer>Cowork Capture · todo ocurre en tu navegador · respeta los Términos de LinkedIn y X (captura manual de páginas que tú ya estás viendo)</footer>
+<script>
+/* ============================================================
+   coworkCapture — se serializa íntegra como bookmarklet.
+   AUTOCONTENIDA: se ejecuta dentro de la página de LinkedIn/X.
+   Extrae + limpia y deposita la captura en esta página (HUB)
+   vía fragmento de URL (#add=...), que nunca viaja al servidor.
+   ============================================================ */
+function coworkCapture(HUB){
+  var host = location.hostname, url = location.href;
+  function clean(t){ return (t||'').replace(/ /g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
+  function txt(el){ return el ? clean(el.innerText||el.textContent||'') : ''; }
+  var NOISE = [
+    /^\d[\d.,\s]*$/,
+    /^\d[\d.,]*\s*(reacciones?|reactions?|comentarios?|comments?|reposts?|veces compartido|me gusta|likes?|visualizaciones?|impressions?|seguidores?|followers?)$/i,
+    /^(mostrar|ver|show|see)\s+(traducci[oó]n|translation)$/i,
+    /^(promocionado|promoted|sponsored|publicidad)$/i,
+    /^(cargar m[aá]s comentarios|load more comments)$/i,
+    /^…?\s*(ver m[aá]s|see more|mostrar m[aá]s|show more)\s*…?$/i,
+    /^(seguir|siguiendo|follow|following|conectar|connect)$/i,
+    /^[•·∙|\s]+$/
+  ];
+  function denoise(t){
+    return t.split('\n').filter(function(L){
+      var s = L.trim();
+      if(!s) return true;
+      for(var i=0;i<NOISE.length;i++){ if(NOISE[i].test(s)) return false; }
+      return true;
+    }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
 
-  <script>
-  /* ============================================================
-     coworkCapture — se serializa íntegra como bookmarklet.
-     Debe ser AUTOCONTENIDA (se ejecuta en la página de LinkedIn/X).
-     ============================================================ */
-  function coworkCapture(DEST){
-    var host = location.hostname, url = location.href;
-    function clean(t){ return (t||'').replace(/ /g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
-    function txt(el){ return el ? clean(el.innerText||el.textContent||'') : ''; }
-    var NOISE = [
-      /^\d[\d.,\s]*$/,
-      /^\d[\d.,]*\s*(reacciones?|reactions?|comentarios?|comments?|reposts?|veces compartido|me gusta|likes?|visualizaciones?|impressions?|seguidores?|followers?)$/i,
-      /^(mostrar|ver|show|see)\s+(traducci[oó]n|translation)$/i,
-      /^(promocionado|promoted|sponsored|publicidad)$/i,
-      /^(cargar m[aá]s comentarios|load more comments)$/i,
-      /^…?\s*(ver m[aá]s|see more|mostrar m[aá]s|show more)\s*…?$/i,
-      /^(seguir|siguiendo|follow|following|conectar|connect)$/i,
-      /^[•·∙|\s]+$/
-    ];
-    function denoise(t){
-      return t.split('\n').filter(function(L){
-        var s = L.trim();
-        if(!s) return true;
-        for(var i=0;i<NOISE.length;i++){ if(NOISE[i].test(s)) return false; }
-        return true;
-      }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  var source = 'Web';
+  if(/(^|\.)x\.com$|twitter\.com$/.test(host)) source = 'X';
+  else if(/linkedin\.com$/.test(host)) source = 'LinkedIn';
+  else source = host.replace(/^www\./,'');
+
+  var sel = ((window.getSelection && window.getSelection().toString()) || '').trim();
+  var pieces = [], authors = [], postDate = '';
+
+  if(sel){
+    pieces.push(sel);
+  } else if(source === 'X'){
+    var sid = (url.match(/status\/(\d+)/)||[])[1];
+    var arts = document.querySelectorAll('article[data-testid="tweet"]');
+    if(!arts.length) arts = document.querySelectorAll('article');
+    var list = []; arts.forEach(function(a){ list.push(a); });
+    if(sid){
+      var main = list.filter(function(a){ var t=a.querySelector('time'); return t && t.parentElement && t.parentElement.href && t.parentElement.href.indexOf(sid) >= 0; });
+      if(main.length) list = [main[0]];
     }
-
-    var source = 'Web';
-    if(/(^|\.)x\.com$|twitter\.com$/.test(host)) source = 'X';
-    else if(/linkedin\.com$/.test(host)) source = 'LinkedIn';
-    else source = host.replace(/^www\./,'');
-
-    var sel = ((window.getSelection && window.getSelection().toString()) || '').trim();
-    var pieces = [], authors = [], postDate = '';
-
-    if(sel){
-      pieces.push(sel);
-    } else if(source === 'X'){
-      var sid = (url.match(/status\/(\d+)/)||[])[1];
-      var arts = document.querySelectorAll('article[data-testid="tweet"]');
-      if(!arts.length) arts = document.querySelectorAll('article');
-      var list = []; arts.forEach(function(a){ list.push(a); });
-      if(sid){
-        var main = list.filter(function(a){ var t=a.querySelector('time'); return t && t.parentElement && t.parentElement.href && t.parentElement.href.indexOf(sid) >= 0; });
-        if(main.length) list = [main[0]];
+    list.forEach(function(a){
+      var name = txt(a.querySelector('[data-testid="User-Name"]')).split('\n')[0];
+      var body = txt(a.querySelector('[data-testid="tweetText"]'));
+      var tm = a.querySelector('time');
+      var when = tm ? tm.getAttribute('datetime') : '';
+      if(when && !postDate) postDate = when;
+      var media = a.querySelector('[data-testid="tweetPhoto"], video') ? '\n[contiene imagen/video]' : '';
+      if(body){
+        pieces.push((name ? name+'\n' : '') + body + media);
+        if(name && authors.indexOf(name) < 0) authors.push(name);
       }
-      list.forEach(function(a){
-        var name = txt(a.querySelector('[data-testid="User-Name"]')).split('\n')[0];
-        var body = txt(a.querySelector('[data-testid="tweetText"]'));
-        var tm = a.querySelector('time');
-        var when = tm ? tm.getAttribute('datetime') : '';
-        if(when && !postDate) postDate = when;
-        var media = a.querySelector('[data-testid="tweetPhoto"], video') ? '\n[contiene imagen/video]' : '';
-        if(body){
-          pieces.push((name ? name+'\n' : '') + body + media);
-          if(name && authors.indexOf(name) < 0) authors.push(name);
-        }
-      });
-    } else if(source === 'LinkedIn'){
-      var idm = url.match(/activity:(\d+)/);
-      var root = null;
-      if(idm){
-        root = document.querySelector('[data-urn*="'+idm[1]+'"]');
-        if(root && !root.classList.contains('feed-shared-update-v2')){
-          root = root.closest('.feed-shared-update-v2') || root.querySelector('.feed-shared-update-v2') || root;
-        }
+    });
+  } else if(source === 'LinkedIn'){
+    var idm = url.match(/activity:(\d+)/);
+    var root = null;
+    if(idm){
+      root = document.querySelector('[data-urn*="'+idm[1]+'"]');
+      if(root && !root.classList.contains('feed-shared-update-v2')){
+        root = root.closest('.feed-shared-update-v2') || root.querySelector('.feed-shared-update-v2') || root;
       }
-      var containers;
-      if(root){ containers = [root]; }
-      else {
-        var all = document.querySelectorAll('.feed-shared-update-v2');
-        containers = all.length ? [all[0]] : [document.querySelector('main') || document.body];
-      }
-      containers.forEach(function(u){
-        var name = txt(u.querySelector('.update-components-actor__title')).split('\n')[0].replace(/\s*[•·].*$/,'').trim();
-        var headline = txt(u.querySelector('.update-components-actor__description')).split('\n')[0];
-        var when = txt(u.querySelector('.update-components-actor__sub-description')).split('\n')[0].replace(/\s*[•·].*$/,'').trim();
-        var bodyEl = u.querySelector('.update-components-text') || u.querySelector('.feed-shared-update-v2__description') || u.querySelector('.update-components-update-v2__commentary');
-        var body = txt(bodyEl);
-        if(!body) body = txt(u);
-        var hdr = (name||'') + (headline ? ' — '+headline : '') + (when ? ' ('+when+')' : '');
-        pieces.push((hdr.trim() ? hdr.trim()+'\n' : '') + body);
-        if(name) authors.push(name);
-      });
-    } else {
-      pieces.push(txt(document.querySelector('article') || document.querySelector('main') || document.body));
     }
-
-    var content = denoise(pieces.join('\n\n----------\n\n'));
-    if(!content){ alert('No pude extraer texto. Selecciona con el ratón el texto del post y vuelve a pulsar el botón.'); return; }
-
-    var captured = new Date().toISOString().slice(0,16).replace('T',' ');
-    var author = authors.join(', ');
-    var header = 'FUENTE: '+source+'\nORIGEN: '+url+'\n'
-      + (author ? 'AUTOR: '+author+'\n' : '')
-      + (postDate ? 'FECHA POST: '+postDate+'\n' : '')
-      + 'CAPTURADO: '+captured+' UTC\n\n----------\n\n';
-    var full = header + content;
-
-    try{ if(navigator.clipboard) navigator.clipboard.writeText(full); }catch(e){}
-    if(!DEST){ alert('Configura primero el email de destino en Cowork Capture.'); }
-
-    var snippet = content.replace(/\n/g,' ').slice(0,60);
-    var subject = '['+source+'] '+snippet;
-    var MAX = 8000, body = full;
-    if(full.length > MAX){ body = full.slice(0,MAX) + '\n\n[...TEXTO COMPLETO COPIADO AL PORTAPAPELES. Pega con Ctrl/Cmd+V el resto...]'; }
-    var gmail = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(DEST)
-      + '&su='+encodeURIComponent(subject) + '&body='+encodeURIComponent(body);
-    window.open(gmail,'_blank');
+    var containers;
+    if(root){ containers = [root]; }
+    else {
+      var all = document.querySelectorAll('.feed-shared-update-v2');
+      containers = all.length ? [all[0]] : [document.querySelector('main') || document.body];
+    }
+    containers.forEach(function(u){
+      var name = txt(u.querySelector('.update-components-actor__title')).split('\n')[0].replace(/\s*[•·].*$/,'').trim();
+      var headline = txt(u.querySelector('.update-components-actor__description')).split('\n')[0];
+      var when = txt(u.querySelector('.update-components-actor__sub-description')).split('\n')[0].replace(/\s*[•·].*$/,'').trim();
+      var bodyEl = u.querySelector('.update-components-text') || u.querySelector('.feed-shared-update-v2__description') || u.querySelector('.update-components-update-v2__commentary');
+      var body = txt(bodyEl);
+      if(!body) body = txt(u);
+      var hdr = (name||'') + (headline ? ' — '+headline : '') + (when ? ' ('+when+')' : '');
+      pieces.push((hdr.trim() ? hdr.trim()+'\n' : '') + body);
+      if(name) authors.push(name);
+    });
+  } else {
+    pieces.push(txt(document.querySelector('article') || document.querySelector('main') || document.body));
   }
 
-  /* ---------- destino + generación del bookmarklet ---------- */
-  var destInput = document.getElementById('dest');
-  var DEST_KEY = 'coworkDest';
-  destInput.value = localStorage.getItem(DEST_KEY) || '';
-  function currentDest(){ return (localStorage.getItem(DEST_KEY) || '').trim(); }
+  var content = denoise(pieces.join('\n\n----------\n\n'));
+  if(!content){ alert('No pude extraer texto. Selecciona con el ratón el texto del post y vuelve a pulsar el botón.'); return; }
 
-  function bookmarkletCode(){
-    return 'javascript:(' + coworkCapture.toString() + ')(' + JSON.stringify(currentDest()) + ');';
-  }
-  function buildBookmarklet(){
-    document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode());
+  var payload = { v:1, source:source, url:url, author:authors.join(', '), postDate:postDate, content:content };
+  window.open(HUB + '#add=' + encodeURIComponent(JSON.stringify(payload)), '_blank');
+}
+
+/* ============================ HUB ============================ */
+(function(){
+  var BATCH_KEY = 'coworkBatch.v1';
+  var DEST_KEY  = 'coworkDest';
+
+  var storageOK = true;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
+  catch(e){ storageOK = false; }
+
+  function loadBatch(){ try{ return JSON.parse(localStorage.getItem(BATCH_KEY)||'[]'); }catch(e){ return []; } }
+  function saveBatch(b){ try{ localStorage.setItem(BATCH_KEY, JSON.stringify(b)); }catch(e){} }
+  function nowStamp(){ return new Date().toISOString().slice(0,16).replace('T',' ') + ' UTC'; }
+  function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+  /* --- entrada por hash (#add=...) --- */
+  var added = false;
+  var hm = location.hash.match(/^#add=([\s\S]+)$/);
+  if(hm){
+    try{
+      var p = JSON.parse(decodeURIComponent(hm[1]));
+      if(p && p.content){
+        var b = loadBatch();
+        b.push({ source:p.source||'Web', url:p.url||'', author:p.author||'', postDate:p.postDate||'', captured:nowStamp(), content:p.content });
+        saveBatch(b);
+        added = true;
+      }
+    }catch(e){}
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
   }
 
-  document.getElementById('saveDest').addEventListener('click', function(){
-    localStorage.setItem(DEST_KEY, destInput.value.trim());
-    var s = document.getElementById('destStatus');
-    s.style.display = 'inline';
-    buildBookmarklet();
-    setTimeout(function(){ s.style.display='none'; }, 2000);
+  /* --- render --- */
+  function render(){
+    var b = loadBatch();
+    document.getElementById('countPill').textContent = b.length + (b.length===1?' en el lote':' en el lote');
+    var box = document.getElementById('batchList');
+    if(!b.length){
+      box.innerHTML = '<div class="empty">Aún no hay capturas. Usa el botón de la barra de marcadores sobre un post, o añade texto a mano abajo.</div>';
+      return;
+    }
+    var html = '<ul class="items">';
+    b.forEach(function(it, i){
+      var snip = (it.content||'').replace(/\s+/g,' ').slice(0,220);
+      html += '<li class="item" data-i="'+i+'">'
+        + '<div class="item-top"><span class="chip">'+esc(it.source)+'</span>'
+        + '<span class="item-author">'+esc((it.author||'').split(',')[0] || '(sin autor)')+'</span>'
+        + '<span class="item-when">'+esc(it.captured)+'</span></div>'
+        + '<div class="item-snip">'+esc(it.content)+'</div>'
+        + '<div class="item-actions">'
+        + '<button class="linkbtn" data-act="toggle" data-i="'+i+'">Ver completo</button>'
+        + (it.url ? '<a class="linkbtn" href="'+esc(it.url)+'" target="_blank" rel="noopener">Origen</a>' : '')
+        + '<button class="linkbtn del" data-act="del" data-i="'+i+'">Quitar</button>'
+        + '</div></li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  document.getElementById('batchList').addEventListener('click', function(ev){
+    var t = ev.target;
+    var act = t.getAttribute && t.getAttribute('data-act');
+    if(!act) return;
+    var i = parseInt(t.getAttribute('data-i'),10);
+    if(act==='del'){
+      var b = loadBatch(); b.splice(i,1); saveBatch(b); render();
+    } else if(act==='toggle'){
+      var li = t.closest('li.item');
+      li.classList.toggle('open');
+      t.textContent = li.classList.contains('open') ? 'Contraer' : 'Ver completo';
+    }
   });
+
+  if(added){
+    var f = document.getElementById('flash');
+    f.textContent = '✓ Captura añadida al lote ('+loadBatch().length+'). Puedes cerrar esta pestaña y seguir leyendo.';
+    f.style.display = 'block';
+  }
+  if(!storageOK){
+    var f2 = document.getElementById('flash');
+    f2.textContent = '⚠ Este navegador bloquea el almacenamiento local aquí: el lote no se guardará entre visitas. Usa «Copiar digest» en el momento.';
+    f2.style.display = 'block';
+    f2.style.color = 'var(--warn)';
+    f2.style.borderColor = 'var(--warn)';
+    f2.style.background = 'var(--warn-soft)';
+  }
+
+  /* --- digest --- */
+  function buildDigest(){
+    var b = loadBatch();
+    if(!b.length) return null;
+    var head = 'DIGEST COWORK CAPTURE\nGENERADO: '+nowStamp()+'\nCAPTURAS: '+b.length+'\n';
+    var blocks = b.map(function(it, i){
+      return '\n==================== '+(i+1)+'/'+b.length+' ====================\n'
+        + 'FUENTE: '+it.source+'\n'
+        + (it.url ? 'ORIGEN: '+it.url+'\n' : '')
+        + (it.author ? 'AUTOR: '+it.author+'\n' : '')
+        + (it.postDate ? 'FECHA POST: '+it.postDate+'\n' : '')
+        + 'CAPTURADO: '+it.captured+'\n\n'
+        + it.content + '\n';
+    });
+    var subject = '[Cowork] Digest '+b.length+' capturas · '+new Date().toISOString().slice(0,10);
+    return { subject: subject, full: head + blocks.join('') };
+  }
+  function digestStatus(msg){
+    var s = document.getElementById('digestStatus');
+    s.textContent = msg; s.style.display = 'block';
+    setTimeout(function(){ s.style.display='none'; }, 4000);
+  }
+
+  document.getElementById('sendDigest').addEventListener('click', function(){
+    var d = buildDigest();
+    if(!d){ digestStatus('El lote está vacío.'); return; }
+    var dest = (localStorage.getItem(DEST_KEY)||'').trim();
+    if(!dest){ digestStatus('Configura antes el email de destino, justo debajo.'); return; }
+    try{ navigator.clipboard.writeText(d.full); }catch(e){}
+    var MAX = 8000, body = d.full;
+    if(body.length > MAX) body = body.slice(0,MAX) + '\n\n[...DIGEST COMPLETO COPIADO AL PORTAPAPELES: bórralo todo y pega con Ctrl/Cmd+V...]';
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest)+'&su='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(body),'_blank');
+    digestStatus(d.full.length > MAX
+      ? 'Digest largo: en Gmail, borra el cuerpo y pega (Ctrl/Cmd+V) para tener el texto completo. Tras enviarlo, pulsa «Vaciar».'
+      : 'Correo abierto. Tras enviarlo, pulsa «Vaciar» para empezar un lote nuevo.');
+  });
+
+  document.getElementById('copyDigest').addEventListener('click', function(){
+    var d = buildDigest();
+    if(!d){ digestStatus('El lote está vacío.'); return; }
+    navigator.clipboard.writeText(d.full).then(function(){ digestStatus('✓ Digest copiado ('+d.full.length+' caracteres).'); });
+  });
+
+  document.getElementById('clearBatch').addEventListener('click', function(){
+    var b = loadBatch();
+    if(!b.length) return;
+    if(confirm('¿Vaciar el lote ('+b.length+' capturas)? Esta acción no se puede deshacer.')){
+      saveBatch([]); render();
+    }
+  });
+
+  /* --- destino --- */
+  var destInput = document.getElementById('dest');
+  destInput.value = localStorage.getItem(DEST_KEY) || '';
+  document.getElementById('saveDest').addEventListener('click', function(){
+    try{ localStorage.setItem(DEST_KEY, destInput.value.trim()); }catch(e){}
+    var s = document.getElementById('destStatus');
+    s.style.display='inline';
+    setTimeout(function(){ s.style.display='none'; },2000);
+  });
+
+  /* --- bookmarklet --- */
+  function hubUrl(){ return location.origin + location.pathname + location.search; }
+  function bookmarkletCode(){ return 'javascript:(' + coworkCapture.toString() + ')(' + JSON.stringify(hubUrl()) + ');'; }
+  document.getElementById('bookmarklet').setAttribute('href', bookmarkletCode());
   document.getElementById('copyBm').addEventListener('click', function(){
     navigator.clipboard.writeText(bookmarkletCode()).then(function(){
-      var b=document.getElementById('copyBm'); var o=b.textContent; b.textContent='✓ Copiado';
-      setTimeout(function(){ b.textContent=o; },1500);
+      var btn = document.getElementById('copyBm'); var o = btn.textContent;
+      btn.textContent = '✓ Copiado';
+      setTimeout(function(){ btn.textContent = o; },1500);
     });
   });
-  buildBookmarklet();
 
-  /* ---------- modo manual ---------- */
+  /* --- añadir a mano --- */
   var NOISE_M = [
     /^\d{1,3}([.,]\d{3})*(\s*(reactions?|reacciones?|comments?|comentarios?|reposts?|shares?|veces compartido|likes?|me gusta|views?|visualizaciones?))?$/i,
     /^(like|comment|repost|send|share|follow(ing)?|reply|view|more|see translation|show more|promoted|sponsored)$/i,
@@ -278,40 +450,28 @@
     for(var i=0;i<lines.length;i++){
       var L = lines[i].replace(/[ \t]+/g,' ').trim();
       if(L===''){ out.push(''); continue; }
-      var noise=false;
+      var noise = false;
       for(var j=0;j<NOISE_M.length;j++){ if(NOISE_M[j].test(L)){ noise=true; break; } }
       if(!noise) out.push(L);
     }
     return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
-  function buildManual(){
-    var src = document.getElementById('mSource').value;
-    var url = document.getElementById('mUrl').value.trim();
+  document.getElementById('mAdd').addEventListener('click', function(){
     var content = cleanPasted(document.getElementById('mText').value);
-    if(!content) return null;
-    var dt = new Date().toISOString().slice(0,16).replace('T',' ');
-    var header = 'FUENTE: '+src+'\n'+(url?'ORIGEN: '+url+'\n':'')+'CAPTURADO: '+dt+' UTC\n\n----------\n\n';
-    var snippet = content.replace(/\n/g,' ').slice(0,60);
-    return { subject:'['+src+'] '+snippet, full:header+content };
-  }
-  document.getElementById('mSend').addEventListener('click', function(){
-    var r = buildManual();
-    if(!r){ flashManual('Pega algún texto primero.'); return; }
-    var dest = currentDest();
-    if(!dest){ flashManual('Configura el email de destino arriba.'); return; }
-    try{ navigator.clipboard.writeText(r.full); }catch(e){}
-    var body = r.full.length>8000 ? r.full.slice(0,8000)+'\n\n[...TEXTO COMPLETO EN EL PORTAPAPELES...]' : r.full;
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(dest)+'&su='+encodeURIComponent(r.subject)+'&body='+encodeURIComponent(body),'_blank');
-  });
-  document.getElementById('mCopy').addEventListener('click', function(){
-    var r = buildManual();
-    if(!r){ flashManual('Pega algún texto primero.'); return; }
-    navigator.clipboard.writeText(r.full).then(function(){ flashManual('✓ Texto limpio copiado'); });
-  });
-  function flashManual(msg){
-    var s=document.getElementById('mStatus'); s.textContent=msg; s.style.display='inline';
+    var s = document.getElementById('mStatus');
+    if(!content){ s.textContent='Pega algún texto primero.'; s.style.display='inline'; setTimeout(function(){s.style.display='none';},2200); return; }
+    var b = loadBatch();
+    b.push({ source:document.getElementById('mSource').value, url:document.getElementById('mUrl').value.trim(), author:'', postDate:'', captured:nowStamp(), content:content });
+    saveBatch(b);
+    document.getElementById('mText').value=''; document.getElementById('mUrl').value='';
+    s.textContent='✓ Añadido al lote'; s.style.display='inline';
     setTimeout(function(){ s.style.display='none'; },2200);
-  }
-  </script>
+    render();
+  });
+
+  render();
+})();
+</script>
+
 </body>
 </html>
