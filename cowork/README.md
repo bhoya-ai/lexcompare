@@ -52,7 +52,10 @@ LinkedIn / X (navegador)                        Carpeta / Cowork
   seleccionar el texto con el ratón antes de pulsar, o el modo manual.
   Selectores en `coworkCapture()` (aquí) y `ios-shortcut/extract.js`.
 - El lote vive por red y por navegador (no se sincroniza entre dispositivos).
-- La descarga cae al portapapeles si el sitio bloquea blobs (no observado).
+- La carpeta fija usa la File System Access API (Chrome/Edge): se elige una
+  vez y los digests se escriben ahí directamente; en navegadores sin la API
+  (Safari) cae a la descarga clásica en Descargas, y en último caso al
+  portapapeles.
 
 ## Historial de decisiones
 

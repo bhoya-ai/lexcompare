@@ -74,7 +74,7 @@
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" style="opacity:.65">v4</span>
+    <span class="count-pill" style="opacity:.65">v4.1</span>
     <p class="sub">El botón captura posts de LinkedIn y X, los limpia y los acumula en un lote dentro de la propia red. Cuando quieras, el panel descarga el lote como un archivo <b>.md</b> con metadatos: déjalo en tu carpeta y que Cowork procese desde ahí. Sin emails, sin límites de tamaño.</p>
   </div>
 
@@ -98,8 +98,8 @@
     <ol>
       <li>Abre el <b>post individual</b> (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
       <li>Pulsa <b>Capturar para Cowork</b>: un panel en el propio LinkedIn/X confirma «✓ Añadido al lote (n)». Sigue leyendo y capturando.</li>
-      <li>Cuando quieras, pulsa <b>Descargar digest (n)</b> en el panel: se guarda <code>cowork-digest-linkedin-FECHA.md</code> en tus Descargas.</li>
-      <li>Deja el archivo en tu <b>carpeta de Cowork</b> (Drive o local) o adjúntalo directamente a la conversación. Después pulsa <b>Vaciar</b> en el panel.</li>
+      <li>Cuando quieras, pulsa <b>Guardar digest (n)</b> en el panel. <b>La primera vez</b> te pedirá elegir carpeta: selecciona tu <code>Descargas/Cowork Capture</code>. A partir de ahí, cada digest se guarda <b>directamente en esa carpeta</b>, sin pasos manuales (enlace «carpeta de guardado…» del panel para cambiarla).</li>
+      <li>Que Cowork procese desde esa carpeta. Tras guardar, pulsa <b>Vaciar</b> en el panel.</li>
     </ol>
     <div class="hint"><b>El lote vive en cada red:</b> las capturas de LinkedIn se acumulan en LinkedIn y las de X en X (limitación de los navegadores). Tendrás un archivo por red. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
   </div>
@@ -296,6 +296,56 @@ function coworkCapture(){
     }catch(e){ return false; }
   }
 
+  /* Carpeta fija vía File System Access API (Chrome/Edge): se elige una
+     vez (p.ej. Descargas/Cowork Capture), el permiso se guarda en
+     IndexedDB del sitio y los digests se escriben ahí directamente. */
+  function fsDb(){
+    return new Promise(function(res, rej){
+      var r = indexedDB.open('coworkFS', 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore('h'); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  function fsGetDir(){
+    return fsDb().then(function(d){
+      return new Promise(function(res){
+        var t = d.transaction('h').objectStore('h').get('dir');
+        t.onsuccess = function(){ res(t.result || null); };
+        t.onerror = function(){ res(null); };
+      });
+    }).catch(function(){ return null; });
+  }
+  function fsSetDir(h){
+    return fsDb().then(function(d){
+      return new Promise(function(res){
+        var t = d.transaction('h','readwrite').objectStore('h').put(h,'dir');
+        t.onsuccess = function(){ res(); };
+        t.onerror = function(){ res(); };
+      });
+    }).catch(function(){});
+  }
+  async function fsSave(fname, text, forcePick){
+    if(!window.showDirectoryPicker) return null;
+    try{
+      var dir = forcePick ? null : await fsGetDir();
+      if(dir){
+        var p = await dir.queryPermission({mode:'readwrite'});
+        if(p !== 'granted') p = await dir.requestPermission({mode:'readwrite'});
+        if(p !== 'granted') dir = null;
+      }
+      if(!dir){
+        dir = await window.showDirectoryPicker({mode:'readwrite'});
+        await fsSetDir(dir);
+      }
+      var fh = await dir.getFileHandle(fname, {create:true});
+      var w = await fh.createWritable();
+      await w.write(text);
+      await w.close();
+      return dir.name || 'carpeta';
+    }catch(e){ return null; }
+  }
+
   /* ---------- panel (sin innerHTML, sin <style>) ---------- */
   var P = document.getElementById('cowork-panel');
   if(P) P.remove();
@@ -328,30 +378,44 @@ function coworkCapture(){
     btnRow.appendChild(x);
     return x;
   }
-  var bSave  = btn('Descargar digest ('+b.length+')', true);
+  var bSave  = btn('Guardar digest ('+b.length+')', true);
   var bCopy  = btn('Copiar');
   var bClear = btn('Vaciar');
   P.appendChild(btnRow);
   var noteTxt = modo==='sitio'
-    ? 'El lote de '+source+' vive en este sitio. Tras descargar y guardar el archivo, pulsa Vaciar.'
+    ? 'El lote de '+source+' vive en este sitio. Tras guardar el digest, pulsa Vaciar.'
     : (modo==='pestaña'
-      ? '⚠ Almacén de '+source+' lleno: el lote vive en ESTA PESTAÑA. Descarga el digest antes de cerrarla.'
-      : '⚠ El lote vive solo en este panel. Descarga el digest antes de navegar o cerrar.');
+      ? '⚠ Almacén de '+source+' lleno: el lote vive en ESTA PESTAÑA. Guarda el digest antes de cerrarla.'
+      : '⚠ El lote vive solo en este panel. Guarda el digest antes de navegar o cerrar.');
   var note = el('div', noteTxt, {marginTop:'8px',fontSize:'11.5px',color: modo==='sitio'?'#8b93a8':'#d9a83f'});
   P.appendChild(note);
+  var folderLink = el('div','carpeta de guardado…',{marginTop:'6px',fontSize:'11px',color:'#7b8cff',cursor:'pointer',textDecoration:'underline'});
+  P.appendChild(folderLink);
 
-  bSave.onclick = function(){
+  async function saveDigest(forcePick){
     var d = buildDigest();
     if(!d){ msgEl.textContent='El lote está vacío.'; return; }
+    var folder = await fsSave(d.fname, d.md, forcePick);
+    if(folder){
+      msgEl.textContent = '✓ Guardado '+d.fname+' en «'+folder+'» ('+d.n+' capturas). Pulsa Vaciar.';
+      return;
+    }
     if(download(d.fname, d.md)){
-      msgEl.textContent = '✓ Descargado '+d.fname+' ('+d.n+' capturas). Déjalo en tu carpeta de Cowork y pulsa Vaciar.';
+      msgEl.textContent = '✓ Descargado '+d.fname+' en Descargas ('+d.n+' capturas). Muévelo a tu carpeta y pulsa Vaciar.';
     } else {
       var ok = false;
       try{ navigator.clipboard.writeText(d.md); ok = true; }catch(e){}
       msgEl.textContent = ok
-        ? '⚠ Descarga bloqueada por el sitio: digest copiado al portapapeles, pégalo en un archivo.'
-        : '⚠ No pude descargar ni copiar. Usa el botón Copiar.';
+        ? '⚠ Guardado bloqueado por el sitio: digest copiado al portapapeles, pégalo en un archivo.'
+        : '⚠ No pude guardar ni copiar. Usa el botón Copiar.';
     }
+  }
+  bSave.onclick = function(){ saveDigest(false); };
+  folderLink.onclick = function(){
+    if(!window.showDirectoryPicker){ msgEl.textContent='Este navegador no permite fijar carpeta: se usará Descargas.'; return; }
+    fsSave('.cowork-capture-test.md', 'Carpeta configurada por Cowork Capture.\n', true).then(function(folder){
+      msgEl.textContent = folder ? '✓ Carpeta fijada: «'+folder+'». Los digests se guardarán ahí.' : 'No se cambió la carpeta.';
+    });
   };
   bCopy.onclick = function(){
     var d = buildDigest();
