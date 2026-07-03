@@ -76,7 +76,7 @@
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" style="opacity:.65">v3.2</span>
+    <span class="count-pill" style="opacity:.65">v3.3</span>
     <p class="sub">El botón captura posts de LinkedIn y X y los acumula en un lote <b>dentro de la propia red</b>: un panel te confirma cada captura y desde él envías el digest a Gmail, sin cambiar de pestaña. Esta página solo sirve para configurar el botón y para añadir texto a mano.</p>
   </div>
 
@@ -286,11 +286,9 @@ function coworkCapture(DEST){
   }
 
   /* ---------- digest ---------- */
-  function buildDigest(){
+  function buildBlocks(){
     var b = lote();
-    if(!b.length) return null;
-    var head = 'DIGEST COWORK CAPTURE ('+source+')\nGENERADO: '+stamp()+'\nCAPTURAS: '+b.length+'\n';
-    var blocks = b.map(function(it, i){
+    return b.map(function(it, i){
       return '\n==================== '+(i+1)+'/'+b.length+' ====================\n'
         + 'FUENTE: '+it.source+'\n'
         + (it.url ? 'ORIGEN: '+it.url+'\n' : '')
@@ -299,8 +297,59 @@ function coworkCapture(DEST){
         + 'CAPTURADO: '+it.captured+'\n\n'
         + it.content + '\n';
     });
-    return { subject:'[Cowork] Digest '+source+' · '+b.length+' capturas · '+new Date().toISOString().slice(0,10),
+  }
+  function buildDigest(){
+    var blocks = buildBlocks();
+    if(!blocks.length) return null;
+    var head = 'DIGEST COWORK CAPTURE ('+source+')\nGENERADO: '+stamp()+'\nCAPTURAS: '+blocks.length+'\n';
+    return { subject:'[Cowork] Digest '+source+' · '+blocks.length+' capturas · '+new Date().toISOString().slice(0,10),
              full: head + blocks.join('') };
+  }
+  /* Gmail rechaza con 400 las URLs de compose largas: el digest se parte
+     en correos que caben (límite sobre la URL YA codificada), respetando
+     posts enteros siempre que sea posible. */
+  var URL_LIMIT = 7600;
+  function composeBase(to, su){
+    return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body=';
+  }
+  function buildParts(to){
+    var blocks = buildBlocks();
+    if(!blocks.length) return null;
+    var nCap = blocks.length;
+    var date = new Date().toISOString().slice(0,10);
+    var suFor = function(i,total){
+      return '[Cowork] Digest '+source+' · '+nCap+' capturas · '+date + (total>1 ? ' · parte '+i+'/'+total : '');
+    };
+    /* la base más larga posible (con sufijo de parte) para medir con margen */
+    /* +400 de margen para la cabecera de parte que se añade tras medir */
+    var worstBase = composeBase(to, suFor(99,99)).length + 400;
+    var fits = function(body){ return worstBase + encodeURIComponent(body).length <= URL_LIMIT; };
+    var CONT = '\n[el post continúa en la parte siguiente...]';
+    var CONT2 = '[...continuación del post anterior]\n';
+    var bodies = [], cur = '';
+    blocks.forEach(function(blk){
+      if(fits(cur + blk)){ cur += blk; return; }
+      if(cur){ bodies.push(cur); cur = ''; }
+      if(fits(blk)){ cur = blk; return; }
+      /* un solo post no cabe: se trocea con marcas de continuación */
+      var rest = blk;
+      while(!fits(rest)){
+        var lo = 0, hi = rest.length;
+        while(lo < hi){
+          var mid = (lo + hi + 1) >> 1;
+          if(fits(rest.slice(0,mid) + CONT)) lo = mid; else hi = mid - 1;
+        }
+        bodies.push(rest.slice(0,lo) + CONT);
+        rest = CONT2 + rest.slice(lo);
+      }
+      cur = rest;
+    });
+    if(cur) bodies.push(cur);
+    var total = bodies.length;
+    return bodies.map(function(body, i){
+      var head = 'DIGEST COWORK CAPTURE ('+source+')'+(total>1 ? ' · PARTE '+(i+1)+'/'+total : '')+'\nGENERADO: '+stamp()+'\nCAPTURAS: '+nCap+'\n';
+      return composeBase(to, suFor(i+1,total)) + encodeURIComponent(head + body);
+    });
   }
 
   /* ---------- panel (sin innerHTML, sin <style>) ---------- */
@@ -347,31 +396,27 @@ function coworkCapture(DEST){
   var note = el('div', noteTxt, {marginTop:'8px',fontSize:'11.5px',color: modo==='sitio'?'#8b93a8':'#d9a83f'});
   P.appendChild(note);
 
-  /* Gmail rechaza con 400 las URLs de compose demasiado largas: el límite
-     debe medirse sobre la URL YA CODIFICADA (tildes y saltos triplican). */
-  function composeUrl(to, su, full){
-    var base = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body=';
-    var LIMIT = 7600;
-    var enc = encodeURIComponent(full);
-    if(base.length + enc.length <= LIMIT) return { url: base+enc, cut:false };
-    var note = '\n\n[...DIGEST COMPLETO EN TU PORTAPAPELES: borra este texto y pega con Ctrl/Cmd+V...]';
-    var lo = 0, hi = full.length;
-    while(lo < hi){
-      var mid = (lo + hi + 1) >> 1;
-      if(base.length + encodeURIComponent(full.slice(0,mid)+note).length <= LIMIT) lo = mid; else hi = mid - 1;
-    }
-    return { url: base + encodeURIComponent(full.slice(0,lo)+note), cut:true };
-  }
-
+  /* Envío por partes: cada clic abre el siguiente correo del digest.
+     Con lotes normales es un único correo; si no cabe, parte 1/N, 2/N… */
+  var partUrls = null, partIdx = 0;
   bSend.onclick = function(){
-    var d = buildDigest();
-    if(!d){ msgEl.textContent='El lote está vacío.'; return; }
     var to = dest();
     if(!to){ msgEl.textContent='⚠ Falta el email de destino.'; return; }
-    try{ if(navigator.clipboard) navigator.clipboard.writeText(d.full); }catch(e){}
-    var c = composeUrl(to, d.subject, d.full);
-    window.open(c.url,'_blank');
-    msgEl.textContent = c.cut ? 'Correo abierto RECORTADO: en Gmail borra el cuerpo y pega con Ctrl/Cmd+V el digest completo. Luego pulsa Vaciar.' : 'Correo abierto. Tras enviarlo, pulsa Vaciar.';
+    if(!partUrls){
+      partUrls = buildParts(to);
+      partIdx = 0;
+      if(!partUrls){ msgEl.textContent='El lote está vacío.'; partUrls=null; return; }
+    }
+    window.open(partUrls[partIdx],'_blank');
+    partIdx++;
+    if(partIdx < partUrls.length){
+      bSend.textContent = 'Enviar parte '+(partIdx+1)+'/'+partUrls.length;
+      msgEl.textContent = 'Parte '+partIdx+'/'+partUrls.length+' abierta. Envíala en Gmail y pulsa el botón para la siguiente.';
+    } else {
+      msgEl.textContent = (partUrls.length>1 ? 'Última parte abierta ('+partUrls.length+'/'+partUrls.length+'). ' : 'Correo abierto. ') + 'Tras enviar, pulsa Vaciar.';
+      bSend.textContent = 'Enviar digest ('+lote().length+')';
+      partUrls = null;
+    }
   };
   bCopy.onclick = function(){
     var d = buildDigest();
@@ -382,6 +427,7 @@ function coworkCapture(DEST){
   bClear.onclick = function(){
     if(confirm('¿Vaciar el lote de '+source+' ('+lote().length+' capturas)?')){
       guarda([]);
+      partUrls = null; partIdx = 0;
       msgEl.textContent='Lote vaciado.';
       bSend.textContent='Enviar digest (0)';
     }
