@@ -103,10 +103,13 @@
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
     <span class="count-pill" id="countPill">0 en el lote</span>
+    <span class="count-pill" style="opacity:.65">v2.1</span>
     <p class="sub">Captura posts de LinkedIn y X con el botón, acumúlalos aquí y envíalos a Cowork en un solo correo. Todo se guarda en este navegador; nada pasa por un servidor.</p>
   </div>
 
   <div id="flash" role="status"></div>
+
+  <div class="hint" id="pasteHint"><b>¿Acabas de capturar un post y no aparece abajo?</b> Haz clic en cualquier parte de esta página y pulsa <code>Ctrl/Cmd + V</code>: la captura viaja también en tu portapapeles y se añadirá al lote.</div>
 
   <!-- LOTE -->
   <div class="card" id="batchCard">
@@ -148,10 +151,10 @@
       <summary>Cómo se usa · instalación manual</summary>
       <ol>
         <li>Abre el <b>post individual</b> en LinkedIn o X (clic en su fecha para ir a su página propia), no desde el scroll del feed.</li>
-        <li>Pulsa <b>Capturar para Cowork</b> en tu barra de marcadores: esta página se abrirá confirmando que se añadió al lote.</li>
+        <li>Pulsa <b>Capturar para Cowork</b> en tu barra de marcadores: se abrirá esta página. Si la captura no aparece sola en el lote, <b>haz clic en la página y pulsa <code>Ctrl/Cmd+V</code></b> (la captura viaja también en el portapapeles).</li>
         <li>Cuando tengas varias, pulsa <b>Enviar digest a Gmail</b>: un solo correo con todas.</li>
       </ol>
-      <div class="hint"><b>Si no puedes arrastrar:</b> crea un marcador nuevo, nómbralo <i>Capturar para Cowork</i> y pega como URL el código de «Copiar código». <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
+      <div class="hint"><b>Instalación recomendada:</b> pulsa «Copiar código», crea un marcador nuevo (nómbralo <i>Capturar para Cowork</i>) y pega el código en el campo URL. Comprueba que la URL del marcador empieza por <code>javascript:</code> — si empieza por <code>https://</code>, el arrastre guardó la dirección de esta página en vez del código, y el botón no capturará nada. <b>Si un post se resiste:</b> selecciona su texto con el ratón antes de pulsar el botón.</div>
     </details>
   </div>
 
@@ -272,6 +275,17 @@ function coworkCapture(HUB){
   if(!content){ alert('No pude extraer texto. Selecciona con el ratón el texto del post y vuelve a pulsar el botón.'); return; }
 
   var payload = { v:1, source:source, url:url, author:authors.join(', '), postDate:postDate, content:content };
+  var packed = '%%COWORK1%%' + JSON.stringify(payload);
+  /* portapapeles: canal principal (el hash puede perderse si el hub va embebido) */
+  var copied = false;
+  try{
+    var ta = document.createElement('textarea');
+    ta.value = packed; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    copied = document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){}
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(packed).then(function(){},function(){}); }catch(e){}
   window.open(HUB + '#add=' + encodeURIComponent(JSON.stringify(payload)), '_blank');
 }
 
@@ -345,11 +359,35 @@ function coworkCapture(HUB){
     }
   });
 
-  if(added){
+  function flashMsg(msg){
     var f = document.getElementById('flash');
-    f.textContent = '✓ Captura añadida al lote ('+loadBatch().length+'). Puedes cerrar esta pestaña y seguir leyendo.';
+    f.textContent = msg;
     f.style.display = 'block';
   }
+  if(added){
+    flashMsg('✓ Captura añadida al lote ('+loadBatch().length+'). Puedes cerrar esta pestaña y seguir leyendo.');
+  }
+
+  /* --- entrada por portapapeles (Ctrl/Cmd+V en cualquier parte) --- */
+  var MARK = '%%COWORK1%%';
+  document.addEventListener('paste', function(ev){
+    var t = '';
+    try{ t = (ev.clipboardData || window.clipboardData).getData('text'); }catch(e){}
+    if(!t || t.indexOf(MARK) !== 0) return;   /* pegado normal: no interferir */
+    ev.preventDefault();
+    try{
+      var p = JSON.parse(t.slice(MARK.length));
+      if(p && p.content){
+        var b = loadBatch();
+        b.push({ source:p.source||'Web', url:p.url||'', author:p.author||'', postDate:p.postDate||'', captured:nowStamp(), content:p.content });
+        saveBatch(b);
+        render();
+        flashMsg('✓ Captura añadida al lote ('+b.length+'). Puedes cerrar la pestaña del post y seguir leyendo.');
+      }
+    }catch(e){
+      flashMsg('⚠ No pude leer la captura pegada. Vuelve al post y pulsa el botón otra vez.');
+    }
+  });
   if(!storageOK){
     var f2 = document.getElementById('flash');
     f2.textContent = '⚠ Este navegador bloquea el almacenamiento local aquí: el lote no se guardará entre visitas. Usa «Copiar digest» en el momento.';
