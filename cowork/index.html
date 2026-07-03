@@ -76,7 +76,7 @@
 <div class="wrap">
   <div class="masthead">
     <h1>Cowork <em>Capture</em></h1>
-    <span class="count-pill" style="opacity:.65">v3</span>
+    <span class="count-pill" style="opacity:.65">v3.1</span>
     <p class="sub">El botón captura posts de LinkedIn y X y los acumula en un lote <b>dentro de la propia red</b>: un panel te confirma cada captura y desde él envías el digest a Gmail, sin cambiar de pestaña. Esta página solo sirve para configurar el botón y para añadir texto a mano.</p>
   </div>
 
@@ -173,8 +173,31 @@ function coworkCapture(DEST){
       return true;
     }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
-  function lote(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } }
-  function guarda(b){ try{ localStorage.setItem(K, JSON.stringify(b)); }catch(e){} }
+  /* Almacenamiento con verificación y escalones: localStorage del sitio
+     (LinkedIn suele tenerlo LLENO y setItem lanza QuotaExceeded) →
+     sessionStorage de la pestaña → window.name → memoria del panel.
+     Siempre se relee tras escribir para confirmar que quedó guardado. */
+  var WN = '%%CWK%%', mem = null, modo = 'sitio';
+  function readRaw(){
+    try{ var v = localStorage.getItem(K); if(v != null) return v; }catch(e){}
+    try{ var v2 = sessionStorage.getItem(K); if(v2 != null) return v2; }catch(e){}
+    try{ if(window.name && window.name.indexOf(WN) === 0) return window.name.slice(WN.length); }catch(e){}
+    return mem;
+  }
+  function lote(){ try{ var r = readRaw(); return r ? JSON.parse(r) : []; }catch(e){ return []; } }
+  function guarda(b){
+    var v = JSON.stringify(b);
+    try{
+      localStorage.setItem(K, v);
+      if(localStorage.getItem(K) === v){ modo='sitio'; try{ sessionStorage.removeItem(K); }catch(e){} return true; }
+    }catch(e){}
+    try{
+      sessionStorage.setItem(K, v);
+      if(sessionStorage.getItem(K) === v){ modo='pestaña'; return true; }
+    }catch(e){}
+    try{ window.name = WN + v; modo='pestaña'; return true; }catch(e){}
+    mem = v; modo='memoria'; return true;
+  }
   function stamp(){ return new Date().toISOString().slice(0,16).replace('T',' ')+' UTC'; }
   function dest(){
     var d = '';
@@ -247,11 +270,11 @@ function coworkCapture(DEST){
   }
 
   var content = denoise(pieces.join('\n\n----------\n\n'));
+  var b = lote();
   var dup = false, msg;
   if(!content){
     msg = '⚠ No pude extraer texto. Selecciona el texto del post con el ratón y vuelve a pulsar.';
   } else {
-    var b = lote();
     for(var i=0;i<b.length;i++){ if(b[i].content === content){ dup = true; break; } }
     if(dup){
       msg = 'Este post ya estaba en el lote ('+b.length+').';
@@ -312,12 +335,16 @@ function coworkCapture(DEST){
     btnRow.appendChild(x);
     return x;
   }
-  var n = lote().length;
-  var bSend  = btn('Enviar digest ('+n+')', true);
+  var bSend  = btn('Enviar digest ('+b.length+')', true);
   var bCopy  = btn('Copiar');
   var bClear = btn('Vaciar');
   P.appendChild(btnRow);
-  var note = el('div','El lote de '+source+' vive en este sitio. Tras enviar el correo, pulsa Vaciar.',{marginTop:'8px',fontSize:'11.5px',color:'#8b93a8'});
+  var noteTxt = modo==='sitio'
+    ? 'El lote de '+source+' vive en este sitio. Tras enviar el correo, pulsa Vaciar.'
+    : (modo==='pestaña'
+      ? '⚠ Almacén de '+source+' lleno: el lote vive en ESTA PESTAÑA. No la cierres antes de enviar el digest.'
+      : '⚠ El lote vive solo en este panel. Envía el digest antes de navegar o cerrar.');
+  var note = el('div', noteTxt, {marginTop:'8px',fontSize:'11.5px',color: modo==='sitio'?'#8b93a8':'#d9a83f'});
   P.appendChild(note);
 
   bSend.onclick = function(){
